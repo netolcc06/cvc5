@@ -60,6 +60,7 @@ LearnedRewrite::LearnedRewrite(PreprocessingPassContext* preprocContext)
 PreprocessingPassResult LearnedRewrite::applyInternal(
     AssertionPipeline* assertionsToPreprocess)
 {
+  if(d_preprocContext->outOfTime()){return PreprocessingPassResult::NO_CONFLICT;}
   NodeManager* nm = NodeManager::currentNM();
   arith::BoundInference binfer(d_env);
   std::vector<Node> learnedLits = d_preprocContext->getLearnedLiterals();

@@ -16,6 +16,7 @@
 #include "smt/process_assertions.h"
 
 #include <utility>
+#include <chrono>
 
 #include "options/arith_options.h"
 #include "options/base_options.h"
@@ -57,6 +58,7 @@ class ScopeCounter
 ProcessAssertions::ProcessAssertions(Env& env, SolverEngineStatistics& stats)
     : EnvObj(env), d_slvStats(stats), d_preprocessingPassContext(nullptr)
 {
+  Trace("limit") << "cvc5::smt::ProcessAssertions processAssertions" << std::endl;
   d_true = NodeManager::currentNM()->mkConst(true);
 }
 
@@ -66,6 +68,7 @@ ProcessAssertions::~ProcessAssertions()
 
 void ProcessAssertions::finishInit(PreprocessingPassContext* pc)
 {
+  Trace("limit") << "cvc5::smt::ProcessAssertions finishInit" << std::endl;
   // note that we may be replacing a stale preprocessing pass context here
   d_preprocessingPassContext = pc;
 
@@ -81,15 +84,20 @@ void ProcessAssertions::finishInit(PreprocessingPassContext* pc)
   }
 }
 
-void ProcessAssertions::cleanup() { d_passes.clear(); }
+void ProcessAssertions::cleanup() { 
+  Trace("limit") << "cvc5::smt::ProcessAssertions cleanup" << std::endl;
+  d_passes.clear(); 
+  }
 
 void ProcessAssertions::spendResource(Resource r)
 {
+  Trace("limit") << "cvc5::smt::ProcessAssertions spendResource" << std::endl;
   resourceManager()->spendResource(r);
 }
 
 bool ProcessAssertions::apply(AssertionPipeline& ap)
 {
+  Trace("limit") << "cvc5::smt::ProcessAssertions apply" << std::endl;
   Assert(d_preprocessingPassContext != nullptr);
   // Dump the assertions
   dumpAssertions("assertions::pre-everything", ap);
@@ -115,7 +123,8 @@ bool ProcessAssertions::apply(AssertionPipeline& ap)
 
   if (options().bv.bvGaussElim)
   {
-    applyPass("bv-gauss", ap);
+    if(!resourceManager()->outOfTime())
+      applyPass("bv-gauss", ap);
   }
 
   // Add dummy assertion in last position - to be used as a
@@ -364,6 +373,7 @@ bool ProcessAssertions::apply(AssertionPipeline& ap)
 // returns false if simplification led to "false"
 bool ProcessAssertions::simplifyAssertions(AssertionPipeline& ap)
 {
+  Trace("limit") << "cvc5::smt::ProcessAssertions simplifyAssertions" << std::endl;
   spendResource(Resource::PreprocessStep);
   try
   {
@@ -449,6 +459,8 @@ bool ProcessAssertions::simplifyAssertions(AssertionPipeline& ap)
 void ProcessAssertions::dumpAssertions(const std::string& key,
                                        const AssertionPipeline& ap)
 {
+  Trace("limit") << "cvc5::smt::ProcessAssertions dumpAssertions " << key << std::endl;
+  if(resourceManager()->outOfTime()){ return ;}
   bool isTraceOn = TraceIsOn(key);
   if (!isTraceOn)
   {
@@ -464,6 +476,7 @@ void ProcessAssertions::dumpAssertions(const std::string& key,
 void ProcessAssertions::dumpAssertionsToStream(std::ostream& os,
                                                const AssertionPipeline& ap)
 {
+  Trace("limit") << "cvc5::smt::ProcessAssertions dumpAssertionsToStream" << std::endl;
   PrintBenchmark pb(Printer::getPrinter(os));
   std::vector<Node> assertions;
   // Notice that users may define ordinary and recursive functions. The latter
@@ -498,6 +511,12 @@ void ProcessAssertions::dumpAssertionsToStream(std::ostream& os,
 PreprocessingPassResult ProcessAssertions::applyPass(const std::string& pname,
                                                      AssertionPipeline& ap)
 {
+  Trace("limit") << "cvc5::smt::ProcessAssertions applyPass " << pname << std::endl;
+  if(resourceManager()->outOfTime()){ 
+      Trace("limit") << "cvc5::smt::ProcessAssertions will NOT apply pass " << pname << std::endl;
+      return PreprocessingPassResult::CONFLICT;
+  }
+  auto start = std::chrono::high_resolution_clock::now();
   dumpAssertions("assertions::pre-" + pname, ap);
   PreprocessingPassResult res;
   // note we do not apply preprocessing passes if we are already in conflict
@@ -510,6 +529,9 @@ PreprocessingPassResult ProcessAssertions::applyPass(const std::string& pname,
     res = PreprocessingPassResult::CONFLICT;
   }
   dumpAssertions("assertions::post-" + pname, ap);
+  auto end = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<double> duration = end - start;
+  Trace("limit") << "cvc5::smt::ProcessAssertions applyPass " << pname << " finish. Execution time: " << duration.count() << " seconds." << std::endl;
   return res;
 }
 

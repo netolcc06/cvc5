@@ -561,6 +561,12 @@ void SolverEngine::defineFunctionsRec(
     const std::vector<Node>& formulas,
     bool global)
 {
+  ResourceManager* rm = getResourceManager();
+
+if (rm->outOfTime())
+    {
+	return;
+    }
   beginCall();
   Trace("smt") << "SMT defineFunctionsRec(...)" << endl;
 
@@ -626,6 +632,13 @@ void SolverEngine::defineFunctionRec(Node func,
                                      Node formula,
                                      bool global)
 {
+  ResourceManager* rm = getResourceManager();
+
+if (rm->outOfTime())
+    {
+	return;
+    }
+  
   std::vector<Node> funcs;
   funcs.push_back(func);
   std::vector<std::vector<Node>> formals_multi;
@@ -716,7 +729,23 @@ QuantifiersEngine* SolverEngine::getAvailableQuantifiersEngine(
 
 Result SolverEngine::checkSat()
 {
+  ResourceManager* rm = getResourceManager();
+
+  UnknownExplanation why = UnknownExplanation::INTERRUPTED;
+  if (rm->outOfTime())
+  {
+    Trace("limit") << "cvc5::internal::PropEngine out of time yy" << std::endl;
+    why = UnknownExplanation::TIMEOUT;
+    return Result(Result::UNKNOWN, why);
+  }
+  if (rm->outOfResources())
+  {
+    Trace("limit") << "cvc5::internal::PropEngine out of resources xx" << std::endl;
+    why = UnknownExplanation::RESOURCEOUT;
+    return Result(Result::UNKNOWN, why);
+  }
   beginCall(true);
+  Trace("limit") << "cvc5::internal::SolverEngine checkSat 1" << std::endl;
   Result res = checkSatInternal({});
   endCall();
   return res;
@@ -724,7 +753,24 @@ Result SolverEngine::checkSat()
 
 Result SolverEngine::checkSat(const Node& assumption)
 {
+  ResourceManager* rm = getResourceManager();
+
+  UnknownExplanation why = UnknownExplanation::INTERRUPTED;
+  if (rm->outOfTime())
+  {
+    Trace("limit") << "cvc5::internal::PropEngine out of time yy" << std::endl;
+    why = UnknownExplanation::TIMEOUT;
+    return Result(Result::UNKNOWN, why);
+  }
+  if (rm->outOfResources())
+  {
+    Trace("limit") << "cvc5::internal::PropEngine out of resources xx" << std::endl;
+    why = UnknownExplanation::RESOURCEOUT;
+    return Result(Result::UNKNOWN, why);
+  }
+
   beginCall(true);
+  Trace("limit") << "cvc5::internal::SolverEngine checkSat 2" << std::endl;
   std::vector<Node> assump;
   if (!assumption.isNull())
   {
@@ -738,6 +784,7 @@ Result SolverEngine::checkSat(const Node& assumption)
 Result SolverEngine::checkSat(const std::vector<Node>& assumptions)
 {
   beginCall(true);
+  Trace("limit") << "cvc5::internal::SolverEngine checkSat 3" << std::endl;
   Result res = checkSatInternal(assumptions);
   endCall();
   return res;
@@ -745,8 +792,23 @@ Result SolverEngine::checkSat(const std::vector<Node>& assumptions)
 
 Result SolverEngine::checkSatInternal(const std::vector<Node>& assumptions)
 {
-  ensureWellFormedTerms(assumptions, "checkSat");
+  ResourceManager* rm = getResourceManager();
 
+  UnknownExplanation why = UnknownExplanation::INTERRUPTED;
+  if (rm->outOfTime())
+  {
+    Trace("limit") << "cvc5::internal::PropEngine out of time yy" << std::endl;
+    why = UnknownExplanation::TIMEOUT;
+    return Result(Result::UNKNOWN, why);
+  }
+  if (rm->outOfResources())
+  {
+    Trace("limit") << "cvc5::internal::PropEngine out of resources xx" << std::endl;
+    why = UnknownExplanation::RESOURCEOUT;
+    return Result(Result::UNKNOWN, why);
+  }
+  ensureWellFormedTerms(assumptions, "checkSat");
+  Trace("limit") << "cvc5::internal::SolverEngine checkSatInternal" << std::endl;
   Trace("smt") << "SolverEngine::checkSat(" << assumptions << ")" << endl;
   // update the state to indicate we are about to run a check-sat
   d_state->notifyCheckSat();
@@ -833,6 +895,7 @@ std::pair<Result, std::vector<Node>> SolverEngine::getTimeoutCore(
     // not necessary to convert, since we computed the assumptions already
     core = ret.second;
   }
+  Trace("limit") << "cvc5::internal::SolverEngine getTimeoutCore" << std::endl;
   endCall();
   return std::pair<Result, std::vector<Node>>(ret.first, core);
 }
@@ -1012,6 +1075,7 @@ Node SolverEngine::findSynth(modes::FindSynthTarget fst, const TypeNode& gtn)
   }
   Node ret = d_findSynthSolver->findSynth(fst, gtnu);
   d_state->notifyFindSynth(!ret.isNull());
+  Trace("limit") << "cvc5::internal::SolverEngine findSynth" << std::endl;
   endCall();
   return ret;
 }
@@ -1103,6 +1167,7 @@ Node SolverEngine::simplify(const Node& t)
   // make so that the returned term does not involve arithmetic subtyping
   SubtypeElimNodeConverter senc;
   ret = senc.convert(ret);
+  Trace("limit") << "cvc5::internal::SolverEngine simplify" << std::endl;
   endCall();
   return ret;
 }
@@ -1885,6 +1950,7 @@ Node SolverEngine::getQuantifierElimination(Node q, bool doFull)
   beginCall(true);
   Node result = d_quantElimSolver->getQuantifierElimination(
       q, doFull, d_isInternalSubsolver);
+  Trace("limit") << "cvc5::internal::SolverEngine getQuantifierElimination" << std::endl;
   endCall();
   return result;
 }
@@ -1901,6 +1967,7 @@ Node SolverEngine::getInterpolant(const Node& conj, const TypeNode& grammarType)
   // notify the state of whether the get-interpolant call was successfuly, which
   // impacts the SMT mode.
   d_state->notifyGetInterpol(success);
+  Trace("limit") << "cvc5::internal::SolverEngine getInterpolant" << std::endl;
   endCall();
   Assert(success == !interpol.isNull());
   return interpol;
@@ -1920,6 +1987,7 @@ Node SolverEngine::getInterpolantNext()
   bool success = d_interpolSolver->getInterpolantNext(interpol);
   // notify the state of whether the get-interpolantant-next call was successful
   d_state->notifyGetInterpol(success);
+  Trace("limit") << "cvc5::internal::SolverEngine getInterpolantNext" << std::endl;
   endCall();
   Assert(success == !interpol.isNull());
   return interpol;
@@ -1936,6 +2004,7 @@ Node SolverEngine::getAbduct(const Node& conj, const TypeNode& grammarType)
   // notify the state of whether the get-abduct call was successful, which
   // impacts the SMT mode.
   d_state->notifyGetAbduct(success);
+  Trace("limit") << "cvc5::internal::SolverEngine getAbduct" << std::endl;
   endCall();
   Assert(success == !abd.isNull());
   return abd;
@@ -2044,11 +2113,14 @@ void SolverEngine::resetAssertions()
 
 void SolverEngine::interrupt()
 {
+  Trace("limit") << "cvc5::internal::SolverEngine interrupt" << std::endl;
   if (!d_state->isFullyInited())
   {
+    Trace("limit") << "cvc5::internal::SolverEngine d_state not fully inited" << std::endl;
     return;
   }
   d_smtSolver->interrupt();
+  Trace("limit") << "cvc5::internal::SolverEngine interrupt after d_smtSolver interrupt" << std::endl;
 }
 
 void SolverEngine::setResourceLimit(uint64_t units, bool cumulative)

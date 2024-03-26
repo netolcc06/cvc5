@@ -697,8 +697,8 @@ inline void     Solver::setDecisionVar(Var v, bool b)
 
 inline void     Solver::setConfBudget(int64_t x){ conflict_budget    = conflicts    + x; }
 inline void     Solver::setPropBudget(int64_t x){ propagation_budget = propagations + x; }
-inline void     Solver::interrupt(){ asynch_interrupt = true; }
-inline void     Solver::clearInterrupt(){ asynch_interrupt = false; }
+inline void     Solver::interrupt(){ Trace("limit") << "cvc5::internal::prop::minisat::core::Solver interrupt" << std::endl; asynch_interrupt = true; }
+inline void     Solver::clearInterrupt(){ Trace("limit") << "cvc5::internal::prop::minisat::core::Solver clearInterrupt" << std::endl; asynch_interrupt = false; }
 inline void     Solver::budgetOff(){ conflict_budget = propagation_budget = -1; }
 
 inline lbool     Solver::solve         ()                    { budgetOff(); assumptions.clear(); return solve_(); }

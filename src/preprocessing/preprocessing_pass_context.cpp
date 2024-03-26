@@ -58,6 +58,12 @@ void PreprocessingPassContext::spendResource(Resource r)
 {
   d_env.getResourceManager()->spendResource(r);
 }
+
+bool PreprocessingPassContext::outOfTime()
+{
+  return d_env.getResourceManager()->outOfTime();
+}
+
 void PreprocessingPassContext::recordSymbolsInAssertions(
     const std::vector<Node>& assertions)
 {

@@ -57,11 +57,12 @@ Result SmtDriver::checkSat(const std::vector<Node>& assumptions)
     // make the check, where notice smt engine should be fully inited by now
 
     Trace("smt") << "SmtSolver::check()" << std::endl;
-
+    Trace("limit") << "cvc5::SmtDriver::checkSat" << std::endl;
     ResourceManager* rm = d_env.getResourceManager();
     // if we are already out of (cumulative) resources
     if (rm->out())
     {
+      Trace("limit") << "cvc5::SmtDriver::checkSat out of resources" << std::endl;
       UnknownExplanation why = rm->outOfResources()
                                    ? UnknownExplanation::RESOURCEOUT
                                    : UnknownExplanation::TIMEOUT;
@@ -156,6 +157,23 @@ SmtDriverSingleCall::SmtDriverSingleCall(Env& env,
 
 Result SmtDriverSingleCall::checkSatNext(preprocessing::AssertionPipeline& ap)
 {
+  ResourceManager* rm = d_env.getResourceManager();
+
+  UnknownExplanation why = UnknownExplanation::INTERRUPTED;
+  if (rm->outOfTime())
+  {
+    Trace("limit") << "cvc5::internal::PropEngine out of time yy" << std::endl;
+    why = UnknownExplanation::TIMEOUT;
+    return Result(Result::UNKNOWN, why);
+  }
+  if (rm->outOfResources())
+  {
+    Trace("limit") << "cvc5::internal::PropEngine out of resources xx" << std::endl;
+    why = UnknownExplanation::RESOURCEOUT;
+    return Result(Result::UNKNOWN, why);
+  }
+
+  Trace("limit") << "SmtDriver::checkSatNext" << std::endl;
   // preprocess
   d_smt.preprocess(ap);
   // assert to internal

@@ -49,6 +49,7 @@ PreprocessingPassResult BoolToBV::applyInternal(
          || d_boolToBVMode == options::BoolToBVMode::ITE);
   for (size_t i = 0; i < size; ++i)
   {
+    if(d_preprocContext->outOfTime()){return PreprocessingPassResult::NO_CONFLICT;}
     Node newAssertion;
     if (d_boolToBVMode == options::BoolToBVMode::ALL)
     {

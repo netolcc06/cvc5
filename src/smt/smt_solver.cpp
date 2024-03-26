@@ -50,6 +50,7 @@ SmtSolver::~SmtSolver() {}
 
 void SmtSolver::finishInit()
 {
+  Trace("limit") << "cvc5::internal::SmtSolver finishInit" << std::endl;
   // We have mutual dependency here, so we add the prop engine to the theory
   // engine later (it is non-essential there)
   d_theoryEngine.reset(new TheoryEngine(d_env));
@@ -86,6 +87,7 @@ void SmtSolver::finishInit()
 
 void SmtSolver::resetAssertions()
 {
+  Trace("limit") << "cvc5::internal::SmtSolver resetAssertions" << std::endl;
   /* Create new PropEngine.
    * First force destruction of referenced PropEngine to enforce that
    * statistics are unregistered by the obsolete PropEngine object before
@@ -103,24 +105,43 @@ void SmtSolver::resetAssertions()
 
 void SmtSolver::interrupt()
 {
+  Trace("limit") << "cvc5::internal::SmtSolver interrupt" << std::endl;
   if (d_propEngine != nullptr)
   {
+    Trace("limit") << "cvc5::internal::SmtSolver d_propEngine interrupt" << std::endl;
     d_propEngine->interrupt();
   }
   if (d_theoryEngine != nullptr)
   {
+    Trace("limit") << "cvc5::internal::SmtSolver d_theoryEngine interrupt" << std::endl;
     d_theoryEngine->interrupt();
   }
 }
 
 Result SmtSolver::checkSatInternal()
 {
+  Trace("limit") << "cvc5::internal::SmtSolver checkSatInternal" << std::endl;
   // call the prop engine to check sat
   return d_propEngine->checkSat();
 }
 
 void SmtSolver::preprocess(preprocessing::AssertionPipeline& ap)
 {
+  Trace("limit") << "cvc5::internal::SmtSolver preprocess" << std::endl;
+
+  ResourceManager* rm = d_env.getResourceManager();
+
+  if (rm->outOfTime())
+  {
+    Trace("limit") << "cvc5::internal::SmtSolver out of time preprocess" << std::endl;
+    return;
+  }
+  if (rm->outOfResources())
+  {
+    Trace("limit") << "cvc5::internal::SmtSolver out of resources preprocess" << std::endl;
+    return;
+  }
+
   TimerStat::CodeTimer paTimer(d_stats.d_processAssertionsTime);
   d_env.getResourceManager()->spendResource(Resource::PreprocessStep);
 
@@ -133,6 +154,7 @@ void SmtSolver::preprocess(preprocessing::AssertionPipeline& ap)
 
 void SmtSolver::assertToInternal(preprocessing::AssertionPipeline& ap)
 {
+  Trace("limit") << "cvc5::internal::SmtSolver assertToInternal" << std::endl;
   // get the assertions
   const std::vector<Node>& assertions = ap.ref();
   preprocessing::IteSkolemMap& ism = ap.getIteSkolemMap();
@@ -174,37 +196,54 @@ void SmtSolver::assertToInternal(preprocessing::AssertionPipeline& ap)
 
 const context::CDList<Node>& SmtSolver::getPreprocessedAssertions() const
 {
+  Trace("limit") << "cvc5::internal::SmtSolver getPreprocessedAssertions" << std::endl;
   return d_ppAssertions;
 }
 
 const context::CDHashMap<size_t, Node>& SmtSolver::getPreprocessedSkolemMap()
     const
 {
+  Trace("limit") << "cvc5::internal::SmtSolver getPreprocessedSkolemMap" << std::endl;
   return d_ppSkolemMap;
 }
 
 bool SmtSolver::trackPreprocessedAssertions() const
 {
+  Trace("limit") << "cvc5::internal::SmtSolver trackPreprocessedAssertions" << std::endl;
   return options().smt.deepRestartMode != options::DeepRestartMode::NONE
          || options().smt.produceProofs;
 }
 
-TheoryEngine* SmtSolver::getTheoryEngine() { return d_theoryEngine.get(); }
+TheoryEngine* SmtSolver::getTheoryEngine() { 
+  Trace("limit") << "cvc5::internal::SmtSolver getTheoryEngine" << std::endl;
+  return d_theoryEngine.get(); 
+  }
 
-prop::PropEngine* SmtSolver::getPropEngine() { return d_propEngine.get(); }
+prop::PropEngine* SmtSolver::getPropEngine() { 
+  Trace("limit") << "cvc5::internal::SmtSolver getPropEngine" << std::endl;
+  return d_propEngine.get(); 
+  }
 
 theory::QuantifiersEngine* SmtSolver::getQuantifiersEngine()
 {
+  Trace("limit") << "cvc5::internal::SmtSolver getQuantifiersEngine" << std::endl;
   Assert(d_theoryEngine != nullptr);
   return d_theoryEngine->getQuantifiersEngine();
 }
 
-Preprocessor* SmtSolver::getPreprocessor() { return &d_pp; }
+Preprocessor* SmtSolver::getPreprocessor() { 
+  Trace("limit") << "cvc5::internal::SmtSolver getPreprocessor" << std::endl;
+  return &d_pp; 
+  }
 
-Assertions& SmtSolver::getAssertions() { return d_asserts; }
+Assertions& SmtSolver::getAssertions() { 
+  Trace("limit") << "cvc5::internal::SmtSolver getAssertions" << std::endl;
+  return d_asserts; 
+  }
 
 void SmtSolver::pushPropContext()
 {
+  Trace("limit") << "cvc5::internal::SmtSolver pushPropContext" << std::endl;
   TimerStat::CodeTimer pushPopTimer(d_stats.d_pushPopTime);
   Assert(d_propEngine != nullptr);
   d_propEngine->push();
@@ -212,6 +251,7 @@ void SmtSolver::pushPropContext()
 
 void SmtSolver::popPropContext()
 {
+  Trace("limit") << "cvc5::internal::SmtSolver popPropContext" << std::endl;
   TimerStat::CodeTimer pushPopTimer(d_stats.d_pushPopTime);
   Assert(d_propEngine != nullptr);
   d_propEngine->pop();
@@ -219,6 +259,7 @@ void SmtSolver::popPropContext()
 
 void SmtSolver::resetTrail()
 {
+  Trace("limit") << "cvc5::internal::SmtSolver resetTrail" << std::endl;
   Assert(d_propEngine != nullptr);
   d_propEngine->resetTrail();
 }

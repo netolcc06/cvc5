@@ -24,6 +24,7 @@ ResourceOutListener::ResourceOutListener(SolverEngine& slv) : d_slv(slv) {}
 
 void ResourceOutListener::notify()
 {
+  Trace("limit") << "ResourceOutListener::ResourceOutListener notify" << std::endl;
   d_slv.interrupt();
 }
 

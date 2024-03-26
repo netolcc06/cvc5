@@ -143,6 +143,10 @@ bool BVSolverBitblast::needsEqualityEngine(EeSetupInfo& esi)
 
 void BVSolverBitblast::postCheck(Theory::Effort level)
 {
+  ResourceManager *rm = d_env.getResourceManager();
+  if (rm->outOfTime()){
+    return;
+  }
   if (level != Theory::Effort::EFFORT_FULL)
   {
     /* Do bit-level propagation only if the SAT solver supports it. */
@@ -167,6 +171,9 @@ void BVSolverBitblast::postCheck(Theory::Effort level)
   /* Process input assertions bit-blast queue. */
   while (!d_bbInputFacts.empty())
   {
+    if (rm->outOfTime()){
+      return;
+    }
     Node fact = d_bbInputFacts.front();
     d_bbInputFacts.pop();
     /* Bit-blast fact and cache literal. */
@@ -217,6 +224,9 @@ void BVSolverBitblast::postCheck(Theory::Effort level)
                                             d_assumptions.end());
   prop::SatValue val = d_satSolver->solve(assumptions);
 
+  if (rm->outOfTime()){
+    return;
+  }
   if (val == prop::SatValue::SAT_VALUE_FALSE)
   {
     std::vector<prop::SatLiteral> unsat_assumptions;

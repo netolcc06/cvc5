@@ -43,6 +43,7 @@ PreprocessingPassResult TheoryPreprocess::applyInternal(
   // Remove all of the ITE occurrences and normalize
   for (unsigned i = 0, size = assertions->size(); i < size; ++i)
   {
+    if(d_preprocContext->outOfTime()){return PreprocessingPassResult::NO_CONFLICT;}
     Node assertion = (*assertions)[i];
     std::vector<SkolemLemma> newAsserts;
     TrustNode trn = propEngine->preprocess(assertion, newAsserts);

@@ -80,6 +80,7 @@ PropEngine::PropEngine(Env& env, TheoryEngine* te)
       d_assumptions(d_env.getUserContext()),
       d_stats(statisticsRegistry())
 {
+  Trace("limit") << "cvc5::internal::PropEngine constructor" << std::endl;
   Trace("prop") << "Constructing the PropEngine" << std::endl;
   context::UserContext* userContext = d_env.getUserContext();
 
@@ -119,12 +120,14 @@ PropEngine::PropEngine(Env& env, TheoryEngine* te)
 
 void PropEngine::finishInit()
 {
+  Trace("limit") << "cvc5::internal::PropEngine finishInit" << std::endl;
   NodeManager* nm = NodeManager::currentNM();
   d_cnfStream->convertAndAssert(nm->mkConst(true), false, false);
   d_cnfStream->convertAndAssert(nm->mkConst(false).notNode(), false, false);
 }
 
 PropEngine::~PropEngine() {
+  Trace("limit") << "cvc5::internal::PropEngine destructor" << std::endl;
   Trace("prop") << "Destructing the PropEngine" << std::endl;
   delete d_cnfStream;
   delete d_satSolver;
@@ -134,18 +137,25 @@ PropEngine::~PropEngine() {
 TrustNode PropEngine::preprocess(TNode node,
                                  std::vector<theory::SkolemLemma>& newLemmas)
 {
+  Trace("limit") << "cvc5::internal::PropEngine preprocess" << std::endl;
   return d_theoryProxy->preprocess(node, newLemmas);
 }
 
 TrustNode PropEngine::removeItes(TNode node,
                                  std::vector<theory::SkolemLemma>& newLemmas)
 {
+  Trace("limit") << "cvc5::internal::PropEngine removeItes" << std::endl;
   return d_theoryProxy->removeItes(node, newLemmas);
 }
 
 void PropEngine::notifyTopLevelSubstitution(const Node& lhs,
                                             const Node& rhs) const
 {
+  Trace("limit") << "cvc5::internal::PropEngine notifyTopLevelSubstitution" << std::endl;
+  ResourceManager* rm = resourceManager();
+  if (rm->outOfTime()) {
+    return;
+  }
   d_theoryProxy->notifyTopLevelSubstitution(lhs, rhs);
   if (isOutputOn(OutputTag::SUBS))
   {
@@ -159,6 +169,11 @@ void PropEngine::assertInputFormulas(
     const std::vector<Node>& assertions,
     std::unordered_map<size_t, Node>& skolemMap)
 {
+  Trace("limit") << "cvc5::internal::PropEngine assertInputFormulas" << std::endl;
+  ResourceManager* rm = resourceManager();
+  if (rm->outOfTime()) {
+    return;
+  }
   Assert(!d_inCheckSat) << "Sat solver in solve()!";
   d_theoryProxy->notifyInputFormulas(assertions, skolemMap);
   int64_t natomsPre = d_cnfStream->d_stats.d_numAtoms.get();
@@ -174,6 +189,11 @@ void PropEngine::assertInputFormulas(
 
 void PropEngine::assertLemma(TrustNode tlemma, theory::LemmaProperty p)
 {
+  Trace("limit") << "cvc5::internal::PropEngine assertLemma" << std::endl;
+  ResourceManager* rm = resourceManager();
+  if (rm->outOfTime()) {
+    return;
+  }
   bool removable = isLemmaPropertyRemovable(p);
 
   // call preprocessor
@@ -213,6 +233,11 @@ void PropEngine::assertLemma(TrustNode tlemma, theory::LemmaProperty p)
 
 void PropEngine::assertTrustedLemmaInternal(TrustNode trn, bool removable)
 {
+  Trace("limit") << "cvc5::internal::PropEngine assertTrustedLemmaInternal" << std::endl;
+  ResourceManager* rm = resourceManager();
+  if (rm->outOfTime()) {
+    return;
+  }
   Node node = trn.getNode();
   Trace("prop::lemmas") << "assertLemma(" << node << ")" << std::endl;
   if (isOutputOn(OutputTag::LEMMAS))
@@ -241,6 +266,11 @@ void PropEngine::assertTrustedLemmaInternal(TrustNode trn, bool removable)
 void PropEngine::assertInternal(
     TNode node, bool negated, bool removable, bool input, ProofGenerator* pg)
 {
+  Trace("limit") << "cvc5::internal::PropEngine assertInternal(TNode node, bool negated, bool removable, bool input, ProofGenerator* pg))" << std::endl;
+  ResourceManager* rm = resourceManager();
+  if (rm->outOfTime()) {
+    return;
+  }
   // Assert as (possibly) removable
   if (options().smt.unsatCoresMode == options::UnsatCoresMode::ASSUMPTIONS)
   {
@@ -276,6 +306,11 @@ void PropEngine::assertLemmasInternal(
     const std::vector<theory::SkolemLemma>& ppLemmas,
     bool removable)
 {
+  Trace("limit") << "cvc5::internal::PropEngine assertInternal(TrustNode trn,const std::vector<theory::SkolemLemma>& ppLemmas,bool removable)" << std::endl;
+  ResourceManager* rm = resourceManager();
+  if (rm->outOfTime()) {
+    return;
+  }
   if (!removable)
   {
     // notify skolem definitions first to ensure that the computation of
@@ -323,26 +358,38 @@ void PropEngine::assertLemmasInternal(
 
 void PropEngine::notifyExplainedPropagation(TrustNode texp)
 {
+  Trace("limit") << "cvc5::internal::PropEngine notifyExplainedPropagation" << std::endl;
+  ResourceManager* rm = resourceManager();
+  if (rm->outOfTime()) {
+    return;
+  }
   Assert(d_ppm != nullptr);
   d_ppm->notifyExplainedPropagation(texp);
 }
 
 void PropEngine::preferPhase(TNode n, bool phase)
 {
+  Trace("limit") << "cvc5::internal::PropEngine preferPhase" << std::endl;
   Trace("prop") << "preferPhase(" << n << ", " << phase << ")" << std::endl;
 
+  ResourceManager* rm = resourceManager();
+  if (rm->outOfTime()) {
+    return;
+  }
   Assert(n.getType().isBoolean());
   SatLiteral lit = d_cnfStream->getLiteral(n);
   d_satSolver->preferPhase(phase ? lit : ~lit);
 }
 
 bool PropEngine::isDecision(Node lit) const {
+  Trace("limit") << "cvc5::internal::PropEngine isDecision" << std::endl;
   Assert(isSatLiteral(lit));
   return d_satSolver->isDecision(d_cnfStream->getLiteral(lit).getSatVariable());
 }
 
 std::vector<Node> PropEngine::getPropDecisions() const
 {
+  Trace("limit") << "cvc5::internal::PropEngine getPropDecisions" << std::endl;
   std::vector<Node> decisions;
   std::vector<SatLiteral> miniDecisions = d_satSolver->getDecisions();
   for (SatLiteral d : miniDecisions)
@@ -354,11 +401,13 @@ std::vector<Node> PropEngine::getPropDecisions() const
 
 std::vector<Node> PropEngine::getPropOrderHeap() const
 {
+  Trace("limit") << "cvc5::internal::PropEngine getPropOrderHeap" << std::endl;
   return d_satSolver->getOrderHeap();
 }
 
 bool PropEngine::isFixed(TNode lit) const
 {
+  Trace("limit") << "cvc5::internal::PropEngine isFixed" << std::endl;
   if (isSatLiteral(lit))
   {
     return d_satSolver->isFixed(d_cnfStream->getLiteral(lit).getSatVariable());
@@ -367,6 +416,11 @@ bool PropEngine::isFixed(TNode lit) const
 }
 
 void PropEngine::printSatisfyingAssignment(){
+  Trace("limit") << "cvc5::internal::PropEngine printSatisfyingAssignment" << std::endl;
+  ResourceManager* rm = resourceManager();
+  if (rm->outOfTime()) {
+    return;
+  }
   const CnfStream::NodeToLiteralMap& transCache =
     d_cnfStream->getTranslationCache();
   Trace("prop-value") << "Literal | Value | Expr" << std::endl
@@ -388,6 +442,7 @@ void PropEngine::printSatisfyingAssignment(){
 void PropEngine::outputIncompleteReason(UnknownExplanation uexp,
                                         theory::IncompleteId iid)
 {
+  Trace("limit") << "cvc5::internal::PropEngine outputIncompleteReason" << std::endl;
   if (isOutputOn(OutputTag::INCOMPLETE))
   {
     output(OutputTag::INCOMPLETE) << "(incomplete ";
@@ -401,9 +456,32 @@ void PropEngine::outputIncompleteReason(UnknownExplanation uexp,
 }
 
 Result PropEngine::checkSat() {
+  Trace("limit") << "cvc5::internal::PropEngine checkSat" << std::endl;
   Assert(!d_inCheckSat) << "Sat solver in solve()!";
   Trace("prop") << "PropEngine::checkSat()" << std::endl;
 
+  // if (d_interrupted) {
+    Trace("limit") << "cvc5::internal::PropEngine checkSat d_interrupted = true" << std::endl;
+    ResourceManager* rm = resourceManager();
+    UnknownExplanation why = UnknownExplanation::INTERRUPTED;
+    if (rm->outOfTime())
+    {
+      Trace("limit") << "cvc5::internal::PropEngine out of time yy" << std::endl;
+      why = UnknownExplanation::TIMEOUT;
+      outputIncompleteReason(why);
+      return Result(Result::UNKNOWN, why);
+    }
+    if (rm->outOfResources())
+    {
+      Trace("limit") << "cvc5::internal::PropEngine out of resources xx" << std::endl;
+      why = UnknownExplanation::RESOURCEOUT;
+      outputIncompleteReason(why);
+      return Result(Result::UNKNOWN, why);
+    }
+
+  // } else {
+  //   Trace("limit") << "cvc5::internal::PropEngine checkSat d_interrupted = false" << std::endl;
+  // }
   // Mark that we are in the checkSat
   ScopedBool scopedBool(d_inCheckSat);
   d_inCheckSat = true;
@@ -439,14 +517,17 @@ Result PropEngine::checkSat() {
   d_theoryProxy->postsolve(result);
 
   if( result == SAT_VALUE_UNKNOWN ) {
-    ResourceManager* rm = resourceManager();
+    Trace("limit") << "cvc5::internal::PropEngine checkSat - result == SAT_VALUE_UNKNOWN" << std::endl;
+    // ResourceManager* rm = resourceManager();
     UnknownExplanation why = UnknownExplanation::INTERRUPTED;
     if (rm->outOfTime())
     {
+      Trace("limit") << "cvc5::internal::PropEngine out of time" << std::endl;
       why = UnknownExplanation::TIMEOUT;
     }
     if (rm->outOfResources())
     {
+      Trace("limit") << "cvc5::internal::PropEngine out of resources" << std::endl;
       why = UnknownExplanation::RESOURCEOUT;
     }
     outputIncompleteReason(why);
@@ -478,6 +559,7 @@ Result PropEngine::checkSat() {
 
 Node PropEngine::getValue(TNode node) const
 {
+  Trace("limit") << "cvc5::internal::PropEngine getValue" << std::endl;
   Assert(node.getType().isBoolean());
   Assert(d_cnfStream->hasLiteral(node));
 
@@ -501,11 +583,13 @@ Node PropEngine::getValue(TNode node) const
 
 bool PropEngine::isSatLiteral(TNode node) const
 {
+  Trace("limit") << "cvc5::internal::PropEngine isSatLiteral" << std::endl;
   return d_cnfStream->hasLiteral(node);
 }
 
 bool PropEngine::hasValue(TNode node, bool& value) const
 {
+  Trace("limit") << "cvc5::internal::PropEngine hasValue" << std::endl;
   Assert(node.getType().isBoolean());
   Assert(d_cnfStream->hasLiteral(node)) << node;
 
@@ -531,11 +615,17 @@ bool PropEngine::hasValue(TNode node, bool& value) const
 
 void PropEngine::getBooleanVariables(std::vector<TNode>& outputVariables) const
 {
+  Trace("limit") << "cvc5::internal::PropEngine getBooleanVariables" << std::endl;
+  ResourceManager* rm = resourceManager();
+  if (rm->outOfTime()) {
+    return;
+  }
   d_cnfStream->getBooleanVariables(outputVariables);
 }
 
 Node PropEngine::ensureLiteral(TNode n)
 {
+  Trace("limit") << "cvc5::internal::PropEngine ensureLiteral" << std::endl;
   // must preprocess
   Node preprocessed = getPreprocessedTerm(n);
   Trace("ensureLiteral") << "ensureLiteral preprocessed: " << preprocessed
@@ -553,6 +643,7 @@ Node PropEngine::ensureLiteral(TNode n)
 
 Node PropEngine::getPreprocessedTerm(TNode n)
 {
+  Trace("limit") << "cvc5::internal::PropEngine getPreprocessedTerm(TNode n)" << std::endl;
   // must preprocess
   std::vector<theory::SkolemLemma> newLemmas;
   TrustNode tpn = d_theoryProxy->preprocess(n, newLemmas);
@@ -566,6 +657,7 @@ Node PropEngine::getPreprocessedTerm(TNode n,
                                      std::vector<Node>& skAsserts,
                                      std::vector<Node>& sks)
 {
+  Trace("limit") << "cvc5::internal::PropEngine getPreprocessedTerm(TNode n, ...)" << std::endl;
   // get the preprocessed form of the term
   Node pn = getPreprocessedTerm(n);
   // initialize the set of skolems and assertions to process
@@ -597,6 +689,11 @@ Node PropEngine::getPreprocessedTerm(TNode n,
 
 void PropEngine::push()
 {
+  Trace("limit") << "cvc5::internal::PropEngine push" << std::endl;
+  ResourceManager* rm = resourceManager();
+  if (rm->outOfTime()) {
+    return;
+  }
   Assert(!d_inCheckSat) << "Sat solver in solve()!";
   d_satSolver->push();
   Trace("prop") << "push()" << std::endl;
@@ -604,6 +701,7 @@ void PropEngine::push()
 
 void PropEngine::pop()
 {
+  Trace("limit") << "cvc5::internal::PropEngine pop" << std::endl;
   Assert(!d_inCheckSat) << "Sat solver in solve()!";
   d_satSolver->pop();
   Trace("prop") << "pop()" << std::endl;
@@ -611,35 +709,49 @@ void PropEngine::pop()
 
 void PropEngine::resetTrail()
 {
+  Trace("limit") << "cvc5::internal::PropEngine resetTrail" << std::endl;
   d_satSolver->resetTrail();
   Trace("prop") << "resetTrail()" << std::endl;
 }
 
 uint32_t PropEngine::getAssertionLevel() const
 {
+  Trace("limit") << "cvc5::internal::PropEngine getAssertionLevel" << std::endl;
   return d_satSolver->getAssertionLevel();
 }
 
-bool PropEngine::isRunning() const { return d_inCheckSat; }
+bool PropEngine::isRunning() const { 
+  Trace("limit") << "cvc5::internal::PropEngine isRunning" << std::endl;
+  return d_inCheckSat; 
+  }
 void PropEngine::interrupt()
 {
+  
+  d_interrupted = true;
+  Trace("limit") << "cvc5::internal::prop::PropEngine interrupt check d_inCheckSat" << std::endl;
   if (!d_inCheckSat)
   {
     return;
   }
 
   d_interrupted = true;
+  // checkSat();
+  Trace("limit") << "cvc5::internal::prop::PropEngine interrupt to call d_satSolver->interrupt()" << std::endl;
   d_satSolver->interrupt();
+  // checkSat();
   Trace("prop") << "interrupt()" << std::endl;
+  Trace("limit") << "cvc5::internal::prop::PropEngine interrupt()" << std::endl;
 }
 
 void PropEngine::spendResource(Resource r)
 {
+  Trace("limit") << "cvc5::internal::prop::PropEngine spendResource" << std::endl;
   d_env.getResourceManager()->spendResource(r);
 }
 
 bool PropEngine::properExplanation(TNode node, TNode expl) const
 {
+  Trace("limit") << "cvc5::internal::PropEngine properExplanation" << std::endl;
   if (!d_cnfStream->hasLiteral(node))
   {
     Trace("properExplanation")
@@ -684,6 +796,11 @@ bool PropEngine::properExplanation(TNode node, TNode expl) const
 
 void PropEngine::checkProof(const context::CDList<Node>& assertions)
 {
+  Trace("limit") << "cvc5::internal::PropEngine checkProof" << std::endl;
+  ResourceManager* rm = resourceManager();
+  if (rm->outOfTime()) {
+    return;
+  }
   if (!d_env.isSatProofProducing())
   {
     return;
@@ -693,6 +810,7 @@ void PropEngine::checkProof(const context::CDList<Node>& assertions)
 
 std::shared_ptr<ProofNode> PropEngine::getProof(bool connectCnf)
 {
+  Trace("limit") << "cvc5::internal::PropEngine getProof" << std::endl;
   if (!d_env.isSatProofProducing())
   {
     return nullptr;
@@ -706,13 +824,22 @@ std::shared_ptr<ProofNode> PropEngine::getProof(bool connectCnf)
 std::vector<std::shared_ptr<ProofNode>> PropEngine::getProofLeaves(
     modes::ProofComponent pc)
 {
+  Trace("limit") << "cvc5::internal::PropEngine getProofLeaves" << std::endl;
   return d_ppm->getProofLeaves(pc);
 }
 
-bool PropEngine::isProofEnabled() const { return d_ppm != nullptr; }
+bool PropEngine::isProofEnabled() const { 
+  Trace("limit") << "cvc5::internal::PropEngine isProofEnabled" << std::endl;
+  return d_ppm != nullptr; 
+  }
 
 void PropEngine::getUnsatCore(std::vector<Node>& core)
 {
+  Trace("limit") << "cvc5::internal::PropEngine getUnsatCore" << std::endl;
+  ResourceManager* rm = resourceManager();
+  if (rm->outOfTime()) {
+    return;
+  }
   if (options().smt.unsatCoresMode == options::UnsatCoresMode::ASSUMPTIONS)
   {
     Trace("unsat-core") << "PropEngine::getUnsatCore: via unsat assumptions"
@@ -737,6 +864,7 @@ void PropEngine::getUnsatCore(std::vector<Node>& core)
 
 std::vector<Node> PropEngine::getUnsatCoreLemmas()
 {
+  Trace("limit") << "cvc5::internal::PropEngine getUnsatCoreLemmas" << std::endl;
   Assert(d_env.isSatProofProducing());
   return d_ppm->getUnsatCoreLemmas();
 }
@@ -744,22 +872,26 @@ std::vector<Node> PropEngine::getUnsatCoreLemmas()
 std::vector<Node> PropEngine::getLearnedZeroLevelLiterals(
     modes::LearnedLitType ltype) const
 {
+  Trace("limit") << "cvc5::internal::PropEngine getLearnedZeroLevelLiterals" << std::endl;
   return d_theoryProxy->getLearnedZeroLevelLiterals(ltype);
 }
 
 std::vector<Node> PropEngine::getLearnedZeroLevelLiteralsForRestart() const
 {
+  Trace("limit") << "cvc5::internal::PropEngine getLearnedZeroLevelLiteralsForRestart" << std::endl;
   return d_theoryProxy->getLearnedZeroLevelLiteralsForRestart();
 }
 
 modes::LearnedLitType PropEngine::getLiteralType(const Node& lit) const
 {
+  Trace("limit") << "cvc5::internal::PropEngine getLiteralType" << std::endl;
   return d_theoryProxy->getLiteralType(lit);
 }
 
 PropEngine::Statistics::Statistics(StatisticsRegistry& sr)
     : d_numInputAtoms(sr.registerInt("prop::PropEngine::numInputAtoms"))
 {
+  Trace("limit") << "cvc5::internal::PropEngine Statistics" << std::endl;
 }
 
 }  // namespace prop

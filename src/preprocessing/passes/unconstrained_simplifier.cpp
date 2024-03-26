@@ -843,13 +843,13 @@ PreprocessingPassResult UnconstrainedSimplifier::applyInternal(
     AssertionPipeline* assertionsToPreprocess)
 {
   d_preprocContext->spendResource(Resource::PreprocessStep);
-
   const std::vector<Node>& assertions = assertionsToPreprocess->ref();
 
   d_context->push();
 
   for (const Node& assertion : assertions)
   {
+    if(d_preprocContext->outOfTime()){return PreprocessingPassResult::NO_CONFLICT;}
     visitAll(assertion);
   }
 
@@ -858,6 +858,7 @@ PreprocessingPassResult UnconstrainedSimplifier::applyInternal(
     processUnconstrained();
     for (size_t i = 0, asize = assertions.size(); i < asize; ++i)
     {
+      if(d_preprocContext->outOfTime()){return PreprocessingPassResult::NO_CONFLICT;}
       Node a = assertions[i];
       Node as = rewrite(d_substitutions.apply(a));
       // replace the assertion

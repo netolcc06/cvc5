@@ -205,7 +205,7 @@ void ResourceManager::spendResource(uint64_t amount)
   ++d_statistics->d_spendResourceCalls;
   d_cumulativeResourceUsed += amount;
 
-  Trace("limit") << "ResourceManager::spendResource()" << std::endl;
+  Trace("limit") << "ResourceManager::spendResource() :" << d_perCallTimer.elapsed() << std::endl;
   d_thisCallResourceUsed += amount;
   if (out())
   {
@@ -214,12 +214,13 @@ void ResourceManager::spendResource(uint64_t amount)
                    << d_statistics->d_spendResourceCalls.get() << std::endl;
     if (outOfTime())
     {
-      Trace("limit") << "ResourceManager::spendResource: elapsed time"
+      Trace("limit") << "ResourceManager::spendResource: elapsed time "
                      << d_perCallTimer.elapsed() << std::endl;
     }
 
     for (Listener* l : d_listeners)
     {
+      Trace("limit") << "ResourceManager::spendResource: notifying listeners" << std::endl;
       l->notify();
     }
   }
@@ -290,6 +291,7 @@ bool ResourceManager::outOfResources() const
     // Check if per-call resources are exhausted
     if (d_thisCallResourceUsed >= d_options.base.perCallResourceLimit)
     {
+      Trace("limit") << "ResourceManager::outOfResources() - per call resource limit reached" << std::endl;
       return true;
     }
   }
@@ -298,6 +300,7 @@ bool ResourceManager::outOfResources() const
     // Check if cumulative resources are exhausted
     if (d_cumulativeResourceUsed >= d_options.base.cumulativeResourceLimit)
     {
+      Trace("limit") << "ResourceManager::outOfResources() will return true - cumulative resource limit reached" << std::endl;
       return true;
     }
   }

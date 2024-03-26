@@ -247,11 +247,12 @@ PreprocessingPassResult ITESimp::applyInternal(
     AssertionPipeline* assertionsToPreprocess)
 {
   d_preprocContext->spendResource(Resource::PreprocessStep);
-
+  if(d_preprocContext->outOfTime()){return PreprocessingPassResult::NO_CONFLICT;}
   size_t nasserts = assertionsToPreprocess->size();
   for (size_t i = 0; i < nasserts; ++i)
   {
     d_preprocContext->spendResource(Resource::PreprocessStep);
+    if(d_preprocContext->outOfTime()){return PreprocessingPassResult::NO_CONFLICT;}
     Node simp = simpITE(&d_iteUtilities, (*assertionsToPreprocess)[i]);
     assertionsToPreprocess->replace(i, simp);
     if (assertionsToPreprocess->isInConflict())

@@ -59,8 +59,10 @@ OutputChannel::OutputChannel(StatisticsRegistry& sr,
 void OutputChannel::safePoint(Resource r)
 {
   spendResource(r);
-  if (d_engine->d_interrupted)
+  if (d_engine->outOfTime())
   {
+    // while (true)
+    std::cout << "output channel aaaaaa" << std::endl;
     throw theory::Interrupted();
   }
 }

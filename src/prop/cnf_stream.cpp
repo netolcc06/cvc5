@@ -108,6 +108,7 @@ void CnfStream::ensureMappingForLiteral(TNode n)
 
 void CnfStream::ensureLiteral(TNode n)
 {
+  // xxx
   AlwaysAssertArgument(
       hasLiteral(n) || n.getType().isBoolean(),
       n,
@@ -132,7 +133,10 @@ void CnfStream::ensureLiteral(TNode n)
     // equal to it.
     // These are not removable and have no proof ID
     d_removable = false;
-
+    if (resourceManager()->outOfTime()) {
+      std::cout << "out of time during ensureLiteral" << std::endl;
+      return;
+    }
     SatLiteral lit = toCNF(n, false);
 
     // Store backward-mappings
@@ -293,8 +297,10 @@ SatLiteral CnfStream::convertAtom(TNode node)
 }
 
 SatLiteral CnfStream::getLiteral(TNode node) {
+  if (resourceManager()->outOfTime()) {
+    std::cout << "out of time during getLiteral" << std::endl;
+  }
   Assert(!node.isNull()) << "CnfStream: can't getLiteral() of null node";
-
   Assert(d_nodeToLiteralMap.contains(node))
       << "Literal not in the CNF Cache: " << node << "\n";
 

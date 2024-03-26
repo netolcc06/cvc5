@@ -79,6 +79,8 @@ class PreprocessingPassContext : protected EnvObj
   /** Spend resource in the resource manager of the associated Env. */
   void spendResource(Resource r);
 
+  bool outOfTime();
+
   /**
    * Get a reference to the top-level substitution map. Note that all
    * substitutions added to this map should use the addSubstitution methods

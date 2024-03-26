@@ -605,6 +605,8 @@ void Theory::check(Effort level)
   Assert(d_theoryState!=nullptr);
   // standard calls for resource, stats
   d_out->spendResource(Resource::TheoryCheckStep);
+  d_out->safePoint(Resource::TheoryCheckStep);
+  
   TimerStat::CodeTimer checkTimer(d_checkTime);
   Trace("theory-check") << "Theory::preCheck " << level << " " << d_id
                         << std::endl;

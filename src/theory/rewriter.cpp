@@ -153,6 +153,7 @@ Node Rewriter::rewriteTo(theory::TheoryId theoryId,
                          Node node,
                          TConvProofGenerator* tcpg)
 {
+  Trace("tnc") << "tnc 02" << std::endl;
 #ifdef CVC5_ASSERTIONS
   bool isEquality = node.getKind() == Kind::EQUAL
                     && !node[0].getType().isBoolean()
@@ -181,7 +182,12 @@ Node Rewriter::rewriteTo(theory::TheoryId theoryId,
   for (;;){
     if (d_resourceManager != nullptr)
     {
-      d_resourceManager->spendResource(Resource::RewriteStep);
+      if (!d_resourceManager->outOfTime())
+        d_resourceManager->spendResource(Resource::RewriteStep);
+      else{
+        return node;
+        // return Node::null();
+      }
     }
 
     // Get the top of the recursion stack
@@ -203,6 +209,14 @@ Node Rewriter::rewriteTo(theory::TheoryId theoryId,
       {
         // Rewrite until fix-point is reached
         for(;;) {
+          if (d_resourceManager != nullptr)
+          {
+            if (d_resourceManager->outOfTime())
+            {
+              return node;
+              // return Node::null();
+            }
+          }
           // Perform the pre-rewrite
           Kind originalKind = rewriteStackTop.d_node.getKind();
           RewriteResponse response = preRewrite(
@@ -298,6 +312,14 @@ Node Rewriter::rewriteTo(theory::TheoryId theoryId,
 
       // Done with all pre-rewriting, so let's do the post rewrite
       for(;;) {
+        if (d_resourceManager != nullptr)
+        {
+          if (d_resourceManager->outOfTime())
+          {
+            return node;
+            // return Node::null();
+          }
+        }
         // Do the post-rewrite
         Kind originalKind = rewriteStackTop.d_node.getKind();
         RewriteResponse response = postRewrite(
@@ -387,6 +409,15 @@ Node Rewriter::rewriteTo(theory::TheoryId theoryId,
           }
         }
       }
+
+      if (d_resourceManager != nullptr)
+        {
+          if (d_resourceManager->outOfTime())
+          {
+            return node;
+            // return Node::null();
+          }
+        }
       setPostRewriteCache(rewriteStackTop.getOriginalTheoryId(),
                           rewriteStackTop.d_original,
                           rewriteStackTop.d_node);

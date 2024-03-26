@@ -88,6 +88,8 @@ namespace theory {
 /* -------------------------------------------------------------------------- */
 
 inline void flattenAnd(Node n, std::vector<TNode>& out){
+  Trace("limit") << "cvc5::internal::TheoryEngine flattenAnd(Node n, std::vector<TNode>& out)" << std::endl;
+
   Assert(n.getKind() == Kind::AND);
   for(Node::iterator i=n.begin(), i_end=n.end(); i != i_end; ++i){
     Node curr = *i;
@@ -103,6 +105,8 @@ inline void flattenAnd(Node n, std::vector<TNode>& out){
 }
 
 inline Node flattenAnd(Node n){
+  Trace("limit") << "cvc5::internal::TheoryEngine flattenAnd(Node n)" << std::endl;
+
   std::vector<TNode> out;
   flattenAnd(n, out);
   return NodeManager::currentNM()->mkNode(Kind::AND, out);
@@ -118,6 +122,7 @@ inline Node flattenAnd(Node n){
  */
 std::string getTheoryString(theory::TheoryId id)
 {
+  Trace("limit") << "cvc5::internal::TheoryEngine getTheoryString(theory::TheoryId id)" << std::endl;
   if (id == theory::THEORY_SAT_SOLVER)
   {
     return "THEORY_SAT_SOLVER";
@@ -133,6 +138,12 @@ std::string getTheoryString(theory::TheoryId id)
 void TheoryEngine::finishInit()
 {
   d_modules.clear();
+  Trace("limit") << "cvc5::internal::TheoryEngine finishInit" << std::endl;
+  auto rm = d_env.getResourceManager();
+  if (rm->outOfTime()) {
+    Trace("limit") << "cvc5::internal::TheoryEngine finishInit out of time" << std::endl;
+    return;
+  }
   Trace("theory") << "Begin TheoryEngine::finishInit" << std::endl;
   // NOTE: This seems to be required since
   // theory::TheoryTraits<THEORY>::isParametric cannot be accessed without
@@ -142,6 +153,11 @@ void TheoryEngine::finishInit()
 #undef CVC5_FOR_EACH_THEORY_STATEMENT
 #endif
 #define CVC5_FOR_EACH_THEORY_STATEMENT(THEORY)   \
+  if (rm->outOfTime()) \
+  { \
+    Trace("limit") << "cvc5::internal::TheoryEngine finishInit out of time" << std::endl; \
+    return; \
+  } \
   if (theory::TheoryTraits<THEORY>::isParametric \
       && isTheoryEnabled(THEORY))    \
   {                                              \
@@ -251,6 +267,7 @@ TheoryEngine::TheoryEngine(Env& env)
       d_inPreregister(false),
       d_factsAsserted(context(), false)
 {
+  Trace("limit") << "cvc5::internal::TheoryEngine constructor" << std::endl;
   for(TheoryId theoryId = theory::THEORY_FIRST; theoryId != theory::THEORY_LAST;
       ++ theoryId)
   {
@@ -268,7 +285,7 @@ TheoryEngine::TheoryEngine(Env& env)
 }
 
 TheoryEngine::~TheoryEngine() {
-
+  Trace("limit") << "cvc5::internal::TheoryEngine destructor" << std::endl;
   for(TheoryId theoryId = theory::THEORY_FIRST; theoryId != theory::THEORY_LAST; ++ theoryId) {
     if(d_theoryTable[theoryId] != NULL) {
       delete d_theoryTable[theoryId];
@@ -277,10 +294,24 @@ TheoryEngine::~TheoryEngine() {
   }
 }
 
-void TheoryEngine::interrupt() { d_interrupted = true; }
+void TheoryEngine::interrupt() { 
+  Trace("limit") << "cvc5::internal::TheoryEngine interrupt" << std::endl;
+  d_interrupted = true;
+  // throw theory::Interrupted();
+}
 void TheoryEngine::preRegister(TNode preprocessed) {
+  Trace("limit") << "cvc5::internal::TheoryEngine preprocessed" << std::endl;
   Trace("theory") << "TheoryEngine::preRegister( " << preprocessed << ")"
                   << std::endl;
+
+  auto rm = d_env.getResourceManager();
+
+  if (rm->outOfTime()) {
+    Trace("limit") << "cvc5::internal::TheoryEngine preregister out of time" << std::endl;
+    d_inPreregister = false;
+    return;
+  }
+
   d_preregisterQueue.push(preprocessed);
 
   if (!d_inPreregister) {
@@ -322,6 +353,7 @@ void TheoryEngine::preRegister(TNode preprocessed) {
 }
 
 void TheoryEngine::printAssertions(const char* tag) {
+  Trace("limit") << "cvc5::internal::TheoryEngine printAssertions" << std::endl;
   if (TraceIsOn(tag)) {
 
     for (TheoryId theoryId = THEORY_FIRST; theoryId < THEORY_LAST; ++theoryId) {
@@ -368,10 +400,27 @@ void TheoryEngine::printAssertions(const char* tag) {
  * @param effort the effort level to use
  */
 void TheoryEngine::check(Theory::Effort effort) {
+  Trace("limit") << "cvc5::internal::TheoryEngine check" << std::endl;
   // spendResource();
 
+  auto rm = d_env.getResourceManager();
   // Reset the interrupt flag
-  d_interrupted = false;
+  Trace("limit") << "cvc5::internal::TheoryEngine check resetting d_interrupted" << std::endl;
+  spendResource(Resource::PreprocessStep);
+  if (rm->out())
+  {   
+      // while (true)
+        cout << "out check at theory engine";
+      cout << "cvc5::internal::TheoryEngine out" << std::endl;
+      Trace("limit") << "cvc5::internal::TheoryEngine out" << std::endl;
+      interrupt();                                                      
+      return;                                                           
+  } 
+  // else {
+  //   // while (true)
+  //     cout << "not out theory_engine at check";
+  // }
+  // d_interrupted = false;
 
 #ifdef CVC5_FOR_EACH_THEORY_STATEMENT
 #undef CVC5_FOR_EACH_THEORY_STATEMENT
@@ -387,10 +436,20 @@ void TheoryEngine::check(Theory::Effort effort) {
     }                                                                    \
     if (rm->out())                                                       \
     {                                                                    \
+      Trace("limit") << "cvc5::internal::TheoryEngine calling interrupt during check" << std::endl;\
+      std::cout << "OUT OF RESOURCES DURING WEIRD LOOP" << std::endl;    \
       interrupt();                                                       \
       return;                                                            \
     }                                                                    \
   }
+
+  // should we check this for every statement?
+  /*if (rm->out())
+    {
+      Trace("limit") << "cvc5::internal::TheoryEngine calling interrupt during check" << std::endl;
+      interrupt();
+      return;
+    }*/
 
   // Do the checking
   try {
@@ -416,7 +475,7 @@ void TheoryEngine::check(Theory::Effort effort) {
       tem->check(effort);
     }
 
-    auto rm = d_env.getResourceManager();
+    // auto rm = d_env.getResourceManager();
 
     // Check until done
     while (d_factsAsserted && !d_inConflict && !d_lemmasAdded) {
@@ -447,10 +506,13 @@ void TheoryEngine::check(Theory::Effort effort) {
       propagate(effort);
 
       // Interrupt in case we reached a resource limit.
+      Trace("limit") << "cvc5::internal::theory::TheoryEngine asking to resourceManager if it is out of resources" << std::endl;
       if (rm->out())
       {
+        Trace("limit") << "cvc5::internal::theory::TheoryEngine calling interrupt xx" << std::endl;
         interrupt();
-        return;
+        throw theory::Interrupted();
+        // return;
       }
 
       if (Theory::fullEffort(effort))
@@ -482,10 +544,13 @@ void TheoryEngine::check(Theory::Effort effort) {
       }
 
       // Interrupt in case we reached a resource limit.
+      Trace("limit") << "cvc5::internal::theory::TheoryEngine asking to resourceManager if it is out of resources" << std::endl;
       if (rm->out())
       {
+        Trace("limit") << "cvc5::internal::theory::TheoryEngine calling interrupt yy" << std::endl;
         interrupt();
-        return;
+        // return;
+        throw theory::Interrupted();
       }
     }
 
@@ -577,14 +642,32 @@ void TheoryEngine::check(Theory::Effort effort) {
       }
     }
   } catch(const theory::Interrupted&) {
+    Trace("limit") << "cvc5::internal::TheoryEngine being interrupted" << std::endl;
+    Trace("limit") << "TheoryEngine::check() => interrupted" << endl;
     Trace("theory") << "TheoryEngine::check() => interrupted" << endl;
   }
 }
 
+bool TheoryEngine::outOfTime() {
+  auto rm = d_env.getResourceManager();
+  if (rm->outOfTime()) {
+    Trace("limit") << "cvc5::internal::TheoryEngine outOftime" << std::endl;
+    interrupt();
+    return true;
+  }
+  return false;
+}
+
 void TheoryEngine::propagate(Theory::Effort effort)
 {
+  Trace("limit") << "cvc5::internal::TheoryEngine propagate" << std::endl;
+  auto rm = d_env.getResourceManager();
+  if (rm->outOfTime()) {
+    Trace("limit") << "cvc5::internal::TheoryEngine propagate out of time" << std::endl;
+    return;
+  }
   // Reset the interrupt flag
-  d_interrupted = false;
+  // d_interrupted = false;
 
   // Definition of the statement that is to be run by every theory
 #ifdef CVC5_FOR_EACH_THEORY_STATEMENT
@@ -598,7 +681,8 @@ void TheoryEngine::propagate(Theory::Effort effort)
   }
 
   // Reset the interrupt flag
-  d_interrupted = false;
+  // Should we actually do this? What if I'm out of resources here?
+  // d_interrupted = false;
 
   // Propagate for each theory using the statement above
   CVC5_FOR_EACH_THEORY;
@@ -606,10 +690,12 @@ void TheoryEngine::propagate(Theory::Effort effort)
 
 Node TheoryEngine::getNextDecisionRequest()
 {
+  Trace("limit") << "cvc5::internal::TheoryEngine getNextDecisionRequest" << std::endl;
   return d_decManager->getNextDecisionRequest();
 }
 
 bool TheoryEngine::properConflict(TNode conflict) const {
+  Trace("limit") << "cvc5::internal::TheoryEngine properConflict" << std::endl;
   bool value;
   if (conflict.getKind() == Kind::AND)
   {
@@ -658,6 +744,7 @@ bool TheoryEngine::properConflict(TNode conflict) const {
 
 TheoryModel* TheoryEngine::getModel()
 {
+  Trace("limit") << "cvc5::internal::TheoryEngine getModel" << std::endl;
   Assert(d_tc != nullptr);
   TheoryModel* m = d_tc->getModel();
   Assert(m != nullptr);
@@ -666,6 +753,7 @@ TheoryModel* TheoryEngine::getModel()
 
 TheoryModel* TheoryEngine::getBuiltModel()
 {
+  Trace("limit") << "cvc5::internal::TheoryEngine getBuiltModel" << std::endl;
   Assert(d_tc != nullptr);
   // If this method was called, produceModels should be true.
   AlwaysAssert(options().smt.produceModels);
@@ -679,17 +767,20 @@ TheoryModel* TheoryEngine::getBuiltModel()
 
 bool TheoryEngine::buildModel()
 {
+  Trace("limit") << "cvc5::internal::TheoryEngine buildModel" << std::endl;
   Assert(d_tc != nullptr);
   return d_tc->buildModel();
 }
 
 bool TheoryEngine::isTheoryEnabled(theory::TheoryId theoryId) const
 {
+  Trace("limit") << "cvc5::internal::TheoryEngine isTheoryEnabled" << std::endl;
   return logicInfo().isTheoryEnabled(theoryId);
 }
 
 theory::TheoryId TheoryEngine::theoryExpPropagation(theory::TheoryId tid) const
 {
+  Trace("limit") << "cvc5::internal::TheoryEngine theoryExpPropagation" << std::endl;
   if (options().theory.eeMode == options::EqEngineMode::CENTRAL)
   {
     if (EqEngineManagerCentral::usesCentralEqualityEngine(options(), tid)
@@ -702,8 +793,14 @@ theory::TheoryId TheoryEngine::theoryExpPropagation(theory::TheoryId tid) const
 }
 
 bool TheoryEngine::presolve() {
+  Trace("limit") << "cvc5::internal::TheoryEngine presolve" << std::endl;
+  auto rm = d_env.getResourceManager();
+  if (rm->outOfTime()) {
+      Trace("limit") << "cvc5::internal::TheoryEngine presolve out of time" << std::endl;
+      return false; // false?
+  }
   // Reset the interrupt flag
-  d_interrupted = false;
+  // d_interrupted = false;
 
   // Reset the decision manager. This clears its decision strategies that are
   // no longer valid in this user context.
@@ -711,6 +808,7 @@ bool TheoryEngine::presolve() {
 
   try {
     // Definition of the statement that is to be run by every theory
+    // Should I check we're out of resources for each cvc5 statement?
 #ifdef CVC5_FOR_EACH_THEORY_STATEMENT
 #undef CVC5_FOR_EACH_THEORY_STATEMENT
 #endif
@@ -727,11 +825,17 @@ bool TheoryEngine::presolve() {
     // Presolve for each theory using the statement above
     CVC5_FOR_EACH_THEORY;
   } catch(const theory::Interrupted&) {
+    Trace("limit") << "cvc5::internal::TheoryEngine presolve interrupted" << std::endl;
     Trace("theory") << "TheoryEngine::presolve() => interrupted" << endl;
   }
+
   // presolve with the theory engine modules as well
   for (TheoryEngineModule* tem : d_modules)
   {
+    if (rm->outOfTime()) {
+      Trace("limit") << "cvc5::internal::TheoryEngine presolve out of time" << std::endl;
+      return false; // false?
+    }
     tem->presolve();
   }
 
@@ -741,9 +845,15 @@ bool TheoryEngine::presolve() {
 
 void TheoryEngine::postsolve(prop::SatValue result)
 {
+  Trace("limit") << "cvc5::internal::TheoryEngine postsolve" << std::endl;
   // postsolve with the theory engine modules as well
   for (TheoryEngineModule* tem : d_modules)
   {
+    auto rm = d_env.getResourceManager();
+    if (rm->outOfTime()) {
+        Trace("limit") << "cvc5::internal::TheoryEngine postsolve out of time" << std::endl;
+        continue;
+    }
     tem->postsolve(result);
   }
 
@@ -752,6 +862,7 @@ void TheoryEngine::postsolve(prop::SatValue result)
 }
 
 void TheoryEngine::notifyRestart() {
+  Trace("limit") << "cvc5::internal::TheoryEngine notifyRestart" << std::endl;
   // Reset the interrupt flag
   d_interrupted = false;
 
@@ -772,14 +883,19 @@ void TheoryEngine::notifyRestart() {
 
 void TheoryEngine::ppStaticLearn(TNode in, NodeBuilder& learned)
 {
+  Trace("limit") << "cvc5::internal::TheoryEngine ppStaticLearn" << std::endl;
   // Reset the interrupt flag
   d_interrupted = false;
-
+  auto rm = d_env.getResourceManager();
   // Definition of the statement that is to be run by every theory
 #ifdef CVC5_FOR_EACH_THEORY_STATEMENT
 #undef CVC5_FOR_EACH_THEORY_STATEMENT
 #endif
 #define CVC5_FOR_EACH_THEORY_STATEMENT(THEORY)        \
+    if (rm->outOfTime()) {                            \
+        Trace("limit") << "cvc5::internal::TheoryEngine ppStaticLearn out of time" << std::endl;\
+        return; \
+    }                                                 \
   if (theory::TheoryTraits<THEORY>::hasPpStaticLearn) \
   {                                                   \
     theoryOf(THEORY)->ppStaticLearn(in, learned);     \
@@ -791,6 +907,7 @@ void TheoryEngine::ppStaticLearn(TNode in, NodeBuilder& learned)
 
 bool TheoryEngine::hasSatValue(TNode n, bool& value) const
 {
+  Trace("limit") << "cvc5::internal::TheoryEngine hasSatValue(TNode n, bool& value)" << std::endl;
   if (d_propEngine->isSatLiteral(n))
   {
     return d_propEngine->hasValue(n, value);
@@ -800,6 +917,7 @@ bool TheoryEngine::hasSatValue(TNode n, bool& value) const
 
 bool TheoryEngine::hasSatValue(TNode n) const
 {
+  Trace("limit") << "cvc5::internal::TheoryEngine hasSatValue(TNode n)" << std::endl;
   if (d_propEngine->isSatLiteral(n))
   {
     bool value;
@@ -810,6 +928,7 @@ bool TheoryEngine::hasSatValue(TNode n) const
 
 bool TheoryEngine::isRelevant(Node lit) const
 {
+  Trace("limit") << "cvc5::internal::TheoryEngine isRelevant" << std::endl;
   if (d_relManager != nullptr)
   {
     return d_relManager->isRelevant(lit);
@@ -897,6 +1016,7 @@ TrustNode TheoryEngine::ppRewrite(TNode term,
 
 TrustNode TheoryEngine::ppStaticRewrite(TNode term)
 {
+  Trace("limit") << "cvc5::internal::TheoryEngine hasSatValue(TNode n, bool& value)" << std::endl;
   TheoryId tid = d_env.theoryOf(term);
   if (!isTheoryEnabled(tid) && tid != THEORY_SAT_SOLVER)
   {
@@ -914,6 +1034,7 @@ TrustNode TheoryEngine::ppStaticRewrite(TNode term)
 
 void TheoryEngine::notifyPreprocessedAssertions(
     const std::vector<Node>& assertions) {
+  Trace("limit") << "cvc5::internal::TheoryEngine notifyPreprocessedAssertions" << std::endl;
   // call all the theories
   for (TheoryId theoryId = theory::THEORY_FIRST; theoryId < theory::THEORY_LAST;
        ++theoryId) {
@@ -928,6 +1049,7 @@ void TheoryEngine::notifyPreprocessedAssertions(
 }
 
 bool TheoryEngine::markPropagation(TNode assertion, TNode originalAssertion, theory::TheoryId toTheoryId, theory::TheoryId fromTheoryId) {
+  Trace("limit") << "cvc5::internal::TheoryEngine markPropagation" << std::endl;
   // What and where we are asserting
   NodeTheoryPair toAssert(assertion, toTheoryId, d_propagationMapTimestamp);
   // What and where it came from
@@ -953,7 +1075,7 @@ bool TheoryEngine::markPropagation(TNode assertion, TNode originalAssertion, the
 
 void TheoryEngine::assertToTheory(TNode assertion, TNode originalAssertion, theory::TheoryId toTheoryId, theory::TheoryId fromTheoryId) {
   Trace("theory::assertToTheory") << "TheoryEngine::assertToTheory(" << assertion << ", " << originalAssertion << "," << toTheoryId << ", " << fromTheoryId << ")" << endl;
-
+  Trace("limit") << "cvc5::internal::TheoryEngine assertTheory" << std::endl;
   Assert(toTheoryId != fromTheoryId);
   if (toTheoryId != THEORY_SAT_SOLVER
       && !isTheoryEnabled(toTheoryId))
@@ -1101,12 +1223,13 @@ void TheoryEngine::assertToTheory(TNode assertion, TNode originalAssertion, theo
 
 void TheoryEngine::assertFact(TNode literal)
 {
+  Trace("limit") << "cvc5::internal::TheoryEngine assertFact" << std::endl;
   Trace("theory") << "TheoryEngine::assertFact(" << literal << ")" << endl;
 
   // spendResource();
 
   // If we're in conflict, nothing to do
-  if (d_inConflict) {
+  if (d_inConflict || d_interrupted) {
     return;
   }
 
@@ -1166,6 +1289,7 @@ void TheoryEngine::assertFact(TNode literal)
 }
 
 bool TheoryEngine::propagate(TNode literal, theory::TheoryId theory) {
+  Trace("limit") << "cvc5::internal::TheoryEngine propagate" << std::endl;
   Trace("theory::propagate")
       << "TheoryEngine::propagate(" << literal << ", " << theory << ")" << endl;
 
@@ -1201,6 +1325,7 @@ bool TheoryEngine::propagate(TNode literal, theory::TheoryId theory) {
 
 theory::EqualityStatus TheoryEngine::getEqualityStatus(TNode a, TNode b)
 {
+  Trace("limit") << "cvc5::internal::TheoryEngine getEqualityStatus" << std::endl;
   Assert(a.getType() == b.getType());
   return d_sharedSolver->getEqualityStatus(a, b);
 }
@@ -1208,21 +1333,25 @@ theory::EqualityStatus TheoryEngine::getEqualityStatus(TNode a, TNode b)
 void TheoryEngine::getDifficultyMap(std::map<Node, Node>& dmap,
                                     bool includeLemmas)
 {
+  Trace("limit") << "cvc5::internal::TheoryEngine getDifficultyMap" << std::endl;
   Assert(d_relManager != nullptr);
   d_relManager->getDifficultyMap(dmap, includeLemmas);
 }
 
 theory::IncompleteId TheoryEngine::getModelUnsoundId() const
 {
+  Trace("limit") << "cvc5::internal::TheoryEngine getModelUnsoudId" << std::endl;
   return d_modelUnsoundId.get();
 }
 theory::IncompleteId TheoryEngine::getRefutationUnsoundId() const
 {
+  Trace("limit") << "cvc5::internal::TheoryEngine getRefutationUnsoudId" << std::endl;
   return d_refutationUnsoundId.get();
 }
 
 Node TheoryEngine::getCandidateModelValue(TNode var)
 {
+  Trace("limit") << "cvc5::internal::TheoryEngine getCandidateModelValue" << std::endl;
   if (var.isConst())
   {
     // the model value of a constant must be itself
@@ -1235,6 +1364,7 @@ Node TheoryEngine::getCandidateModelValue(TNode var)
 
 std::unordered_set<TNode> TheoryEngine::getRelevantAssertions(bool& success)
 {
+  Trace("limit") << "cvc5::internal::TheoryEngine getRelevantAssertions" << std::endl;
   // if there is no relevance manager, we fail
   if (d_relManager == nullptr)
   {
@@ -1247,6 +1377,7 @@ std::unordered_set<TNode> TheoryEngine::getRelevantAssertions(bool& success)
 
 TrustNode TheoryEngine::getExplanation(TNode node)
 {
+  Trace("limit") << "cvc5::internal::TheoryEngine getExplanation" << std::endl;
   Trace("theory::explain") << "TheoryEngine::getExplanation(" << node
                            << "): current propagation index = "
                            << d_propagationMapTimestamp << endl;
@@ -1349,7 +1480,12 @@ struct AtomsCollect {
 };
 
 void TheoryEngine::ensureLemmaAtoms(TNode n, theory::TheoryId atomsTo)
-{
+{ 
+  Trace("limit") << "cvc5::internal::TheoryEngine ensureLemmaAtoms" << std::endl;
+  auto rm = d_env.getResourceManager();
+    if (rm->outOfTime()) {
+        Trace("limit") << "cvc5::internal::TheoryEngine ensure lemma atoms out of time" << std::endl;
+    }
   Assert(atomsTo != THEORY_LAST);
   Trace("theory::atoms") << "TheoryEngine::ensureLemmaAtoms(" << n << ", "
                          << atomsTo << ")" << endl;
@@ -1359,6 +1495,11 @@ void TheoryEngine::ensureLemmaAtoms(TNode n, theory::TheoryId atomsTo)
 }
 
 void TheoryEngine::ensureLemmaAtoms(const std::vector<TNode>& atoms, theory::TheoryId atomsTo) {
+  Trace("limit") << "cvc5::internal::TheoryEngine ensureLemmaAtoms 2" << std::endl;
+  auto rm = d_env.getResourceManager();
+    if (rm->outOfTime()) {
+        Trace("limit") << "cvc5::internal::TheoryEngine ensure lemma atoms 2 out of time" << std::endl;
+    }
   for (unsigned i = 0; i < atoms.size(); ++ i) {
 
     // Non-equality atoms are either owned by theory or they don't make sense
@@ -1433,6 +1574,11 @@ void TheoryEngine::lemma(TrustNode tlemma,
                          LemmaProperty p,
                          TheoryId from)
 {
+  Trace("limit") << "cvc5::internal::TheoryEngine lemma" << std::endl;
+  auto rm = d_env.getResourceManager();
+    if (rm->outOfTime()) {
+        Trace("limit") << "cvc5::internal::TheoryEngine lemma out of time" << std::endl;
+    }
   // For resource-limiting (also does a time check).
   // spendResource();
   Assert(tlemma.getKind() == TrustNodeKind::LEMMA
@@ -1494,6 +1640,7 @@ void TheoryEngine::lemma(TrustNode tlemma,
 
 void TheoryEngine::markInConflict()
 {
+  Trace("limit") << "cvc5::internal::TheoryEngine markInConflict" << std::endl;
 #ifdef CVC5_FOR_EACH_THEORY_STATEMENT
 #undef CVC5_FOR_EACH_THEORY_STATEMENT
 #endif
@@ -1507,6 +1654,7 @@ void TheoryEngine::conflict(TrustNode tconflict,
                             InferenceId id,
                             TheoryId theoryId)
 {
+  Trace("limit") << "cvc5::internal::TheoryEngine conflict" << std::endl;
   Assert(tconflict.getKind() == TrustNodeKind::CONFLICT);
 
   TNode conflict = tconflict.getNode();
@@ -1625,6 +1773,7 @@ void TheoryEngine::conflict(TrustNode tconflict,
 void TheoryEngine::setModelUnsound(theory::TheoryId theory,
                                    theory::IncompleteId id)
 {
+  Trace("limit") << "cvc5::internal::TheoryEngine setModelUnsound" << std::endl;
   d_modelUnsound = true;
   d_modelUnsoundTheory = theory;
   d_modelUnsoundId = id;
@@ -1633,6 +1782,7 @@ void TheoryEngine::setModelUnsound(theory::TheoryId theory,
 void TheoryEngine::setRefutationUnsound(theory::TheoryId theory,
                                         theory::IncompleteId id)
 {
+  Trace("limit") << "cvc5::internal::TheoryEngine setRefutationUnsound" << std::endl;
   d_refutationUnsound = true;
   d_refutationUnsoundTheory = theory;
   d_refutationUnsoundId = id;
@@ -1641,6 +1791,7 @@ void TheoryEngine::setRefutationUnsound(theory::TheoryId theory,
 TrustNode TheoryEngine::getExplanation(
     std::vector<NodeTheoryPair>& explanationVector)
 {
+  Trace("limit") << "cvc5::internal::TheoryEngine getExplanation" << std::endl;
   Assert(explanationVector.size() == 1);
   Node conclusion = explanationVector[0].d_node;
   // if the theory explains using the central equality engine, we always start
@@ -1976,10 +2127,16 @@ TrustNode TheoryEngine::getExplanation(
 
 bool TheoryEngine::isProofEnabled() const
 {
+  Trace("limit") << "cvc5::internal::TheoryEngine isProofEnabled" << std::endl;
   return d_env.isTheoryProofProducing();
 }
 
 void TheoryEngine::checkTheoryAssertionsWithModel(bool hardFailure) {
+  auto rm = d_env.getResourceManager();
+    if (rm->outOfTime()) {
+        Trace("limit") << "cvc5::internal::TheoryEngine check theory assertin with model out of time" << std::endl;
+    }
+  Trace("limit") << "cvc5::internal::TheoryEngine checkTheoryAssertionsWithModel" << std::endl;
   bool hasFailure = false;
   std::stringstream serror;
   // If possible, get the list of relevant assertions. Those that are not
@@ -2053,7 +2210,9 @@ void TheoryEngine::checkTheoryAssertionsWithModel(bool hardFailure) {
 std::pair<bool, Node> TheoryEngine::entailmentCheck(options::TheoryOfMode mode,
                                                     TNode lit)
 {
+  Trace("limit") << "cvc5::internal::TheoryEngine entailmentCheck" << std::endl;
   TNode atom = (lit.getKind() == Kind::NOT) ? lit[0] : lit;
+  
   if (atom.getKind() == Kind::AND || atom.getKind() == Kind::OR
       || atom.getKind() == Kind::IMPLIES)
   {
@@ -2130,11 +2289,18 @@ std::pair<bool, Node> TheoryEngine::entailmentCheck(options::TheoryOfMode mode,
 
 void TheoryEngine::spendResource(Resource r)
 {
+  Trace("limit") << "cvc5::internal::TheoryEngine spendResource" << std::endl;
+  // if (!d_interrupted)
   d_env.getResourceManager()->spendResource(r);
 }
 
 void TheoryEngine::initializeProofChecker(ProofChecker* pc)
 {
+  Trace("limit") << "cvc5::internal::TheoryEngine initializeProofChecker" << std::endl;
+  auto rm = d_env.getResourceManager();
+    if (rm->outOfTime()) {
+        Trace("limit") << "cvc5::internal::TheoryEngine initializeProofChecker out of time" << std::endl;
+    }
   for (theory::TheoryId id = theory::THEORY_FIRST; id < theory::THEORY_LAST;
        ++id)
   {

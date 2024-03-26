@@ -172,6 +172,7 @@ void TheoryProxy::notifyAssertion(Node a, TNode skolem, bool isLemma)
 
 void TheoryProxy::theoryCheck(theory::Theory::Effort effort) {
   Trace("theory-proxy") << "TheoryProxy: check " << effort << std::endl;
+  //xxx
   d_activatedSkDefs = false;
   // check with the preregistrar
   d_prr->check();
@@ -391,6 +392,7 @@ void TheoryProxy::notifyRestart() {
 
 void TheoryProxy::spendResource(Resource r)
 {
+  Trace("limit") << "cvc5::prop::TheoryProxy spendResource" << std::endl;
   d_theoryEngine->spendResource(r);
 }
 

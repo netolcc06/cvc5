@@ -62,7 +62,7 @@ PreprocessingPassResult NonClausalSimp::applyInternal(
     AssertionPipeline* assertionsToPreprocess)
 {
   d_preprocContext->spendResource(Resource::PreprocessStep);
-
+  if(d_preprocContext->outOfTime()){return PreprocessingPassResult::NO_CONFLICT;}
   if (TraceIsOn("non-clausal-simplify"))
   {
     for (size_t i = 0, size = assertionsToPreprocess->size(); i < size; ++i)
@@ -183,6 +183,7 @@ PreprocessingPassResult NonClausalSimp::applyInternal(
         d_preprocContext->getTheoryEngine()->solve(tlearnedLiteral,
                                                    *newSubstitutions.get());
 
+    if(d_preprocContext->outOfTime()){return PreprocessingPassResult::NO_CONFLICT;}
     switch (solveStatus)
     {
       case Theory::PP_ASSERT_STATUS_SOLVED:
@@ -190,7 +191,8 @@ PreprocessingPassResult NonClausalSimp::applyInternal(
         // The literal should rewrite to true
         Trace("non-clausal-simplify")
             << "solved " << learnedLiteral << std::endl;
-        Assert(rewrite(nss.apply(learnedLiteral)).isConst());
+        CVC5_UNUSED Node r = rewrite(nss.apply(learnedLiteral));
+        Assert(r.isConst());
         // else fall through
         break;
       }

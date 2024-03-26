@@ -35,11 +35,11 @@ PreprocessingPassResult StaticLearning::applyInternal(
     AssertionPipeline* assertionsToPreprocess)
 {
   d_preprocContext->spendResource(Resource::PreprocessStep);
-
   std::vector<TNode> toProcess;
 
   for (size_t i = 0, size = assertionsToPreprocess->size(); i < size; ++i)
   {
+    if(d_preprocContext->outOfTime()){return PreprocessingPassResult::NO_CONFLICT;}
     const Node& n = (*assertionsToPreprocess)[i];
 
     /* Already processed in this context. */

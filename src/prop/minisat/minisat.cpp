@@ -192,6 +192,7 @@ SatVariable MinisatSatSolver::newVar(bool isTheoryAtom, bool canErase)
 }
 
 SatValue MinisatSatSolver::solve(unsigned long& resource) {
+  // xxx
   Trace("limit") << "SatSolver::solve(): have limit of " << resource << " conflicts" << std::endl;
   setupOptions();
   if(resource == 0) {
@@ -209,6 +210,7 @@ SatValue MinisatSatSolver::solve(unsigned long& resource) {
 }
 
 SatValue MinisatSatSolver::solve() {
+  // xxx
   setupOptions();
   d_minisat->budgetOff();
   SatValue result = toSatLiteralValue(d_minisat->solve());
@@ -218,6 +220,7 @@ SatValue MinisatSatSolver::solve() {
 
 SatValue MinisatSatSolver::solve(const std::vector<SatLiteral>& assumptions)
 {
+  // xxx
   setupOptions();
   d_minisat->budgetOff();
 

@@ -23,6 +23,7 @@
 #include "preprocessing/preprocessing_pass_context.h"
 #include "smt/env.h"
 #include "theory/substitutions.h"
+#include "util/resource_manager.h"
 
 namespace cvc5::internal {
 namespace preprocessing {
@@ -42,6 +43,7 @@ PreprocessingPassResult ApplySubsts::applyInternal(
   // TODO(#1255): Substitutions in incremental mode should be managed with a
   // proper data structure.
 
+  // d_preprocContext->outOfTime();
   theory::TrustSubstitutionMap& tlsm =
       d_preprocContext->getTopLevelSubstitutions();
   unsigned size = assertionsToPreprocess->size();
@@ -53,7 +55,12 @@ PreprocessingPassResult ApplySubsts::applyInternal(
     }
     Trace("apply-substs") << "applying to " << (*assertionsToPreprocess)[i]
                           << std::endl;
+    // Trace("limit") << "applying to " << (*assertionsToPreprocess)[i]
+    // << std::endl;
     d_preprocContext->spendResource(Resource::PreprocessStep);
+    Trace("tnc") << "tnc 00" << std::endl;
+    if(d_preprocContext->outOfTime()){return PreprocessingPassResult::NO_CONFLICT;}
+    Trace("tnc") << "tnc 01" << std::endl;
     assertionsToPreprocess->replaceTrusted(
         i,
         tlsm.applyTrusted((*assertionsToPreprocess)[i], d_env.getRewriter()));

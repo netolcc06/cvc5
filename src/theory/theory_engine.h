@@ -122,6 +122,7 @@ class TheoryEngine : protected EnvObj
 
   /** "Spend" a resource during a search or preprocessing.*/
   void spendResource(Resource r);
+  bool outOfTime();
 
   /**
    * Adds a theory. Only one theory per TheoryId can be present, so if

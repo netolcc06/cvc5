@@ -51,6 +51,7 @@ static inline void dtviewDecisionHelper(size_t level,
                                         const char* decisiontype,
                                         bool incremental)
 {
+  Trace("limit") << "cvc5::prop::minisat::core::Solver dtviewDecisionHelper" << std::endl;
   Trace("dtview") << std::string(level - (incremental ? 1 : 0), '*') << " "
                   << node << " :" << decisiontype << "-DECISION:" << std::endl;
 }
@@ -58,6 +59,7 @@ static inline void dtviewDecisionHelper(size_t level,
 // Writes to Trace macro for propagation tracing
 static inline void dtviewPropagationHeaderHelper(size_t level, bool incremental)
 {
+  Trace("limit") << "cvc5::prop::minisat::core::Solver dtviewPropagationHeaderHelper" << std::endl;
   Trace("dtview::prop") << std::string(level + 1 - (incremental ? 1 : 0), '*')
                         << " /Propagations/" << std::endl;
 }
@@ -68,6 +70,7 @@ static inline void dtviewBoolPropagationHelper(size_t level,
                                                cvc5::internal::prop::TheoryProxy* proxy,
                                                bool incremental)
 {
+  Trace("limit") << "cvc5::prop::minisat::core::Solver dtviewBoolPropagationHelper" << std::endl;
   Trace("dtview::prop") << std::string(level + 1 - (incremental ? 1 : 0), ' ')
                         << ":BOOL-PROP: "
                         << proxy->getNode(MinisatSatSolver::toSatLiteral(l))
@@ -80,6 +83,7 @@ static inline void dtviewPropConflictHelper(size_t level,
                                             cvc5::internal::prop::TheoryProxy* proxy,
                                             bool incremental)
 {
+  Trace("limit") << "cvc5::prop::minisat::core::Solver dtviewPropConflictHelper" << std::endl;
   Trace("dtview::conflict")
       << std::string(level + 1 - (incremental ? 1 : 0), ' ')
       << ":PROP-CONFLICT: (or";
@@ -208,6 +212,7 @@ Solver::Solver(Env& env,
       propagation_budget(-1),
       asynch_interrupt(false)
 {
+  Trace("limit") << "cvc5::prop::minisat::core::Solver constructor" << std::endl;
   if (ppm)
   {
     d_pfManager.reset(
@@ -238,6 +243,7 @@ Solver::~Solver()
 //
 Var Solver::newVar(bool sign, bool dvar, bool isTheoryAtom, bool canErase)
 {
+    Trace("limit") << "cvc5::prop::minisat::core::Solver newVar" << std::endl;
     int v = nVars();
 
     watches  .init(mkLit(v, false));
@@ -260,6 +266,7 @@ Var Solver::newVar(bool sign, bool dvar, bool isTheoryAtom, bool canErase)
 }
 
 void Solver::resizeVars(int newSize) {
+  Trace("limit") << "cvc5::prop::minisat::core::Solver resizeVars" << std::endl;
   Assert(d_enable_incremental);
   Assert(decisionLevel() == 0);
   Assert(newSize >= 2) << "always keep true/false";
@@ -287,6 +294,7 @@ void Solver::resizeVars(int newSize) {
 }
 
 CRef Solver::reason(Var x) {
+  Trace("limit") << "cvc5::prop::minisat::core::Solver reason" << std::endl;
   Trace("pf::sat") << "Solver::reason(" << x << ")" << std::endl;
 
   // If we already have a reason, just return it
@@ -401,7 +409,8 @@ CRef Solver::reason(Var x) {
 }
 
 bool Solver::addClause_(vec<Lit>& ps, bool removable, ClauseId& id)
-{
+{   
+    Trace("limit") << "cvc5::prop::minisat::core::Solver addClause_" << std::endl;
     if (!ok) return false;
 
     // Check if clause is satisfied and remove false/duplicate literals:
@@ -581,6 +590,7 @@ bool Solver::addClause_(vec<Lit>& ps, bool removable, ClauseId& id)
 
 
 void Solver::attachClause(CRef cr) {
+    Trace("limit") << "cvc5::prop::minisat::core::Solver attachClause" << std::endl;
     const Clause& c = ca[cr];
     if (TraceIsOn("minisat"))
     {
@@ -600,6 +610,7 @@ void Solver::attachClause(CRef cr) {
 
 
 void Solver::detachClause(CRef cr, bool strict) {
+  Trace("limit") << "cvc5::prop::minisat::core::Solver detachClause" << std::endl;
     const Clause& c = ca[cr];
     Trace("minisat") << "Solver::detachClause(" << c << ")" << std::endl;
     if (TraceIsOn("minisat"))
@@ -629,6 +640,7 @@ void Solver::detachClause(CRef cr, bool strict) {
 
 
 void Solver::removeClause(CRef cr) {
+    Trace("limit") << "cvc5::prop::minisat::core::Solver removeClause" << std::endl;
     Clause& c = ca[cr];
     if (TraceIsOn("minisat"))
     {
@@ -670,6 +682,7 @@ void Solver::removeClause(CRef cr) {
 
 
 bool Solver::satisfied(const Clause& c) const {
+    Trace("limit") << "cvc5::prop::minisat::core::Solver satisfied" << std::endl;
     for (int i = 0; i < c.size(); i++)
         if (value(c[i]) == l_True)
             return true;
@@ -679,6 +692,7 @@ bool Solver::satisfied(const Clause& c) const {
 // Revert to the state at given level (keeping all assignment at 'level' but not beyond).
 //
 void Solver::cancelUntil(int level) {
+    Trace("limit") << "cvc5::prop::minisat::core::Solver cancelUntil" << std::endl;
     Trace("minisat") << "minisat::cancelUntil(" << level << ")" << std::endl;
 
     if (decisionLevel() > level)
@@ -707,7 +721,10 @@ void Solver::cancelUntil(int level) {
     }
 }
 
-void Solver::resetTrail() { cancelUntil(0); }
+void Solver::resetTrail() { 
+  Trace("limit") << "cvc5::prop::minisat::core::Solver resetTrail" << std::endl;
+  cancelUntil(0); 
+  }
 
 //=================================================================================================
 // Major methods:
@@ -715,6 +732,7 @@ void Solver::resetTrail() { cancelUntil(0); }
 
 Lit Solver::pickBranchLit()
 {
+    Trace("limit") << "cvc5::prop::minisat::core::Solver pickBranchLit" << std::endl;
     Lit nextLit;
     bool stopSearch = false;
     bool requirePhase = false;
@@ -842,6 +860,7 @@ Lit Solver::pickBranchLit()
 |________________________________________________________________________________________________@*/
 int Solver::analyze(CRef confl, vec<Lit>& out_learnt, int& out_btlevel)
 {
+  Trace("limit") << "cvc5::prop::minisat::core::Solver analyze" << std::endl;
   Trace("pf::sat") << "Solver::analyze: starting with " << confl
                    << " with decision level " << decisionLevel() << "\n";
 
@@ -1028,6 +1047,7 @@ int Solver::analyze(CRef confl, vec<Lit>& out_learnt, int& out_btlevel)
 // visiting literals at levels that cannot be removed later.
 bool Solver::litRedundant(Lit p, uint32_t abstract_levels)
 {
+    Trace("limit") << "cvc5::prop::minisat::core::Solver litRedundant" << std::endl;
     analyze_stack.clear(); analyze_stack.push(p);
     int top = analyze_toclear.size();
     while (analyze_stack.size() > 0){
@@ -1076,6 +1096,7 @@ bool Solver::litRedundant(Lit p, uint32_t abstract_levels)
 |________________________________________________________________________________________________@*/
 void Solver::analyzeFinal(Lit p, vec<Lit>& out_conflict)
 {
+    Trace("limit") << "cvc5::prop::minisat::core::Solver analyzeFinal" << std::endl;
     out_conflict.clear();
     out_conflict.push(p);
 
@@ -1105,6 +1126,7 @@ void Solver::analyzeFinal(Lit p, vec<Lit>& out_conflict)
 
 void Solver::uncheckedEnqueue(Lit p, CRef from)
 {
+  Trace("limit") << "cvc5::prop::minisat::core::Solver uncheckedEnqueue" << std::endl;
   if (TraceIsOn("minisat"))
   {
     Trace("minisat") << "unchecked enqueue of " << p << " ("
@@ -1144,6 +1166,7 @@ void Solver::uncheckedEnqueue(Lit p, CRef from)
 
 CRef Solver::propagate(TheoryCheckType type)
 {
+    Trace("limit") << "cvc5::prop::minisat::core::Solver propagate" << std::endl;
     CRef confl = CRef_Undef;
     recheck = false;
     theoryConflict = false;
@@ -1227,6 +1250,7 @@ CRef Solver::propagate(TheoryCheckType type)
 }
 
 void Solver::propagateTheory() {
+  Trace("limit") << "cvc5::prop::minisat::core::Solver propagateTheory" << std::endl;
   SatClause propagatedLiteralsClause;
   // Doesn't actually call propagate(); that's done in theoryCheck() now that combination
   // is online.  This just incorporates those propagations previously discovered.
@@ -1270,6 +1294,7 @@ void Solver::propagateTheory() {
 |________________________________________________________________________________________________@*/
 void Solver::theoryCheck(cvc5::internal::theory::Theory::Effort effort)
 {
+  Trace("limit") << "cvc5::prop::minisat::core::Solver theoryCheck" << std::endl;
   d_proxy->theoryCheck(effort);
 }
 
@@ -1286,6 +1311,7 @@ void Solver::theoryCheck(cvc5::internal::theory::Theory::Effort effort)
 |________________________________________________________________________________________________@*/
 CRef Solver::propagateBool()
 {
+    Trace("limit") << "cvc5::prop::minisat::core::Solver propagateBool" << std::endl;
     CRef    confl     = CRef_Undef;
     int     num_props = 0;
     watches.cleanAll();
@@ -1370,6 +1396,7 @@ struct reduceDB_lt {
 };
 void Solver::reduceDB()
 {
+    Trace("limit") << "cvc5::prop::minisat::core::Solver reduceDB" << std::endl;
     int     i, j;
     double  extra_lim = cla_inc / clauses_removable.size();    // Remove any clause below this activity
 
@@ -1390,6 +1417,7 @@ void Solver::reduceDB()
 
 void Solver::removeSatisfied(vec<CRef>& cs)
 {
+    Trace("limit") << "cvc5::prop::minisat::core::Solver removeSatisfied" << std::endl;
     int i, j;
     for (i = j = 0; i < cs.size(); i++){
         Clause& c = ca[cs[i]];
@@ -1406,6 +1434,7 @@ void Solver::removeSatisfied(vec<CRef>& cs)
 
 void Solver::removeClausesAboveLevel(vec<CRef>& cs, int level)
 {
+    Trace("limit") << "cvc5::prop::minisat::core::Solver removeClausesAboveLevel" << std::endl;
     int i, j;
     for (i = j = 0; i < cs.size(); i++){
         Clause& c = ca[cs[i]];
@@ -1425,6 +1454,7 @@ void Solver::removeClausesAboveLevel(vec<CRef>& cs, int level)
 
 void Solver::rebuildOrderHeap()
 {
+    Trace("limit") << "cvc5::prop::minisat::core::Solver rebuildOrderHeap" << std::endl;
     vec<Var> vs;
     for (Var v = 0; v < nVars(); v++)
         if (decision[v] && value(v) == l_Undef)
@@ -1443,6 +1473,7 @@ void Solver::rebuildOrderHeap()
 |________________________________________________________________________________________________@*/
 bool Solver::simplify()
 {
+  Trace("limit") << "cvc5::prop::minisat::core::Solver simplify" << std::endl;
   Assert(decisionLevel() == 0);
 
   if (!ok || propagate(CHECK_WITHOUT_THEORY) != CRef_Undef) return ok = false;
@@ -1480,6 +1511,7 @@ bool Solver::simplify()
 |________________________________________________________________________________________________@*/
 lbool Solver::search(int nof_conflicts)
 {
+  Trace("limit") << "cvc5::prop::minisat::core::Solver search" << std::endl;
   Assert(ok);
   int backtrack_level;
   int conflictC = 0;
@@ -1605,6 +1637,7 @@ lbool Solver::search(int nof_conflicts)
       if ((nof_conflicts >= 0 && conflictC >= nof_conflicts)
           || !withinBudget(Resource::SatConflictStep))
       {
+        Trace("limit") << "cvc5::prop::minisat::core::Solver out of budget - SatConflictStep cancel 00" << std::endl;
         // Reached bound on number of conflicts:
         progress_estimate = progressEstimate();
         cancelUntil(0);
@@ -1673,6 +1706,7 @@ lbool Solver::search(int nof_conflicts)
 
 double Solver::progressEstimate() const
 {
+    Trace("limit") << "cvc5::prop::minisat::core::Solver progressEstimate" << std::endl;
     double  progress = 0;
     double  F = 1.0 / nVars();
 
@@ -1698,7 +1732,7 @@ double Solver::progressEstimate() const
  */
 
 static double luby(double y, int x){
-
+    Trace("limit") << "cvc5::prop::minisat::core::Solver luby" << std::endl;
     // Find the finite subsequence that contains index 'x', and the
     // size of that subsequence:
     int size, seq;
@@ -1716,6 +1750,7 @@ static double luby(double y, int x){
 // NOTE: assumptions passed in member-variable 'assumptions'.
 lbool Solver::solve_()
 {
+  Trace("limit") << "cvc5::prop::minisat::core::Solver solve_" << std::endl;
     Trace("minisat") << "nvars = " << nVars() << std::endl;
 
     ScopedBool scoped_bool(minisat_busy, true);
@@ -1749,12 +1784,18 @@ lbool Solver::solve_()
         double rest_base = luby_restart ? luby(restart_inc, curr_restarts) : pow(restart_inc, curr_restarts);
         status = search(rest_base * restart_first);
         if (!withinBudget(Resource::SatConflictStep))
-          break;  // FIXME add restart option?
+          {
+            Trace("limit") << "cvc5::prop::minisat::core::Solver out of budget - cancel 01" << std::endl;
+            break;  // FIXME add restart option?
+          }
         curr_restarts++;
     }
 
     if (!withinBudget(Resource::SatConflictStep))
-      status = l_Undef;
+      {
+        Trace("limit") << "cvc5::prop::minisat::core::Solver out of budget - status l_Undef" << std::endl;
+        status = l_Undef;
+      }
 
     if (verbosity >= 1)
         printf("===============================================================================\n");
@@ -1781,6 +1822,7 @@ lbool Solver::solve_()
 
 static Var mapVar(Var x, vec<Var>& map, Var& max)
 {
+    Trace("limit") << "cvc5::prop::minisat::core::Solver mapVar" << std::endl;
     if (map.size() <= x || map[x] == -1){
         map.growTo(x+1, -1);
         map[x] = max++;
@@ -1791,6 +1833,7 @@ static Var mapVar(Var x, vec<Var>& map, Var& max)
 
 void Solver::toDimacs(FILE* f, Clause& c, vec<Var>& map, Var& max)
 {
+    Trace("limit") << "cvc5::prop::minisat::core::Solver toDimacs(FILE*)" << std::endl;
     if (satisfied(c)) return;
 
     for (int i = 0; i < c.size(); i++)
@@ -1802,6 +1845,7 @@ void Solver::toDimacs(FILE* f, Clause& c, vec<Var>& map, Var& max)
 
 void Solver::toDimacs(const char *file, const vec<Lit>& assumps)
 {
+    Trace("limit") << "cvc5::prop::minisat::core::Solver toDimacs(*file)" << std::endl;
     FILE* f = fopen(file, "wr");
     if (f == NULL)
         fprintf(stderr, "could not open file %s\n", file), exit(1);
@@ -1812,6 +1856,7 @@ void Solver::toDimacs(const char *file, const vec<Lit>& assumps)
 
 void Solver::toDimacs(FILE* f, const vec<Lit>& assumps)
 {
+    Trace("limit") << "cvc5::prop::minisat::core::Solver toDimacs(FILE* f, const vec<Lit>& assumps)" << std::endl;
     // Handle case when solver is in contradictory state:
     if (!ok){
         fprintf(f, "p cnf 1 2\n1 0\n-1 0\n");
@@ -1860,6 +1905,7 @@ void Solver::toDimacs(FILE* f, const vec<Lit>& assumps)
 
 void Solver::relocAll(ClauseAllocator& to)
 {
+    Trace("limit") << "cvc5::prop::minisat::core::Solver relocAll" << std::endl;
     // All watchers:
     //
     // for (int i = 0; i < watches.size(); i++)
@@ -1903,6 +1949,7 @@ void Solver::relocAll(ClauseAllocator& to)
 
 void Solver::garbageCollect()
 {
+    Trace("limit") << "cvc5::prop::minisat::core::Solver garbageCollect" << std::endl;
     // Initialize the next region to a size corresponding to the estimated utilization degree. This
     // is not precise but should avoid some unnecessary reallocations for the new region:
     ClauseAllocator to(ca.size() - ca.wasted());
@@ -1916,6 +1963,7 @@ void Solver::garbageCollect()
 
 void Solver::push()
 {
+  Trace("limit") << "cvc5::prop::minisat::core::Solver push" << std::endl;
   Assert(d_enable_incremental);
   Assert(decisionLevel() == 0);
 
@@ -1931,6 +1979,7 @@ void Solver::push()
 
 void Solver::pop()
 {
+  Trace("limit") << "cvc5::prop::minisat::core::Solver pop" << std::endl;
   Assert(d_enable_incremental);
 
   Assert(decisionLevel() == 0);
@@ -1982,7 +2031,7 @@ void Solver::pop()
 }
 
 CRef Solver::updateLemmas() {
-
+  Trace("limit") << "cvc5::prop::minisat::core::Solver updateLemmas" << std::endl;
   Trace("minisat::lemmas") << "Solver::updateLemmas() begin" << std::endl;
 
   // Avoid adding lemmas indefinitely without resource-out
@@ -2133,6 +2182,7 @@ CRef Solver::updateLemmas() {
 
 void ClauseAllocator::reloc(CRef& cr, ClauseAllocator& to)
 {
+  Trace("limit") << "cvc5::prop::minisat::core::Solver reloc" << std::endl;
   Trace("minisat") << "ClauseAllocator::reloc: cr " << cr << std::endl;
   // FIXME what is this CRef_lazy
   if (cr == CRef_Lazy) return;
@@ -2151,42 +2201,59 @@ void ClauseAllocator::reloc(CRef& cr, ClauseAllocator& to)
 
 inline bool Solver::withinBudget(Resource r) const
 {
+  Trace("limit") << "cvc5::prop::minisat::core::Solver withinBudget" << std::endl;
   Assert(d_proxy);
   // spendResource may interrupt the solver via a callback.
+  Trace("limit") << "cvc5::prop::minisat::core::Solver calling proxy spendResource" << std::endl;
   d_proxy->spendResource(r);
 
+  Trace("limit") << "cvc5::prop::minisat::core::Solver withinBudget" << std::endl;
   bool within_budget =
       !asynch_interrupt && (conflict_budget < 0 || conflicts < conflict_budget)
       && (propagation_budget < 0 || propagations < propagation_budget);
+  if (within_budget) {
+    Trace("limit") << "cvc5::prop::minisat::core::Solver withinBudget" << std::endl;
+    }
+  else {
+    Trace("limit") << "cvc5::prop::minisat::core::Solver::withinBudget NOT withinBudget" << std::endl;
+  }
   return within_budget;
 }
 
 SatProofManager* Solver::getProofManager()
 {
+  Trace("limit") << "cvc5::prop::minisat::core::Solver getProofManager" << std::endl;
   return isProofEnabled() ? d_pfManager.get() : nullptr;
 }
 
 std::shared_ptr<ProofNode> Solver::getProof()
 {
+  Trace("limit") << "cvc5::prop::minisat::core::Solver getProof" << std::endl;
   return isProofEnabled() ? d_pfManager->getProof() : nullptr;
 }
 
-bool Solver::isProofEnabled() const { return d_pfManager != nullptr; }
+bool Solver::isProofEnabled() const { 
+  Trace("limit") << "cvc5::prop::minisat::core::Solver isProofEnabled" << std::endl;
+  return d_pfManager != nullptr; 
+  }
 
 bool Solver::needProof() const
 {
+  Trace("limit") << "cvc5::prop::minisat::core::Solver needProof" << std::endl;
   return isProofEnabled()
          && options().smt.proofMode != options::ProofMode::PP_ONLY;
 }
 
 bool Solver::assertionLevelOnly() const
 {
+  Trace("limit") << "cvc5::prop::minisat::core::Solver assertionLevelOnly" << std::endl;
   return options().smt.produceUnsatCores && !needProof()
          && options().base.incrementalSolving;
 }
 
 const std::vector<Node> Solver::getMiniSatOrderHeap()
 {
+  Trace("limit") << "cvc5::prop::minisat::core::Solver getMiniSatOrderHeap" << std::endl;
   std::vector<Node> heapList;
   for (size_t i = 0, hsize = order_heap.size(); i < hsize; ++i)
   {

@@ -52,6 +52,7 @@ PreprocessingPassResult BVToBool::applyInternal(
   liftBvToBool(assertionsToPreprocess->ref(), new_assertions);
   for (size_t i = 0, size = assertionsToPreprocess->size(); i < size; ++i)
   {
+    if(d_preprocContext->outOfTime()){return PreprocessingPassResult::NO_CONFLICT;}
     assertionsToPreprocess->replace(i, rewrite(new_assertions[i]));
     if (assertionsToPreprocess->isInConflict())
     {
