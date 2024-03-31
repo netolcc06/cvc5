@@ -437,19 +437,11 @@ void TheoryEngine::check(Theory::Effort effort) {
     if (rm->out())                                                       \
     {                                                                    \
       Trace("limit") << "cvc5::internal::TheoryEngine calling interrupt during check" << std::endl;\
-      std::cout << "OUT OF RESOURCES DURING WEIRD LOOP" << std::endl;    \
+      std::cout << "OUT OF RESOURCES DURING TheoryEngine::CVC5_FOR_EACH_THEORY_STATEMENT LOOP" << std::endl;    \
       interrupt();                                                       \
       return;                                                            \
     }                                                                    \
   }
-
-  // should we check this for every statement?
-  /*if (rm->out())
-    {
-      Trace("limit") << "cvc5::internal::TheoryEngine calling interrupt during check" << std::endl;
-      interrupt();
-      return;
-    }*/
 
   // Do the checking
   try {

@@ -210,6 +210,8 @@ void BVSolverBitblast::postCheck(Theory::Effort level)
       else
       {
         d_bitblaster->bbAtom(fact);
+        // TODO test out of resources here if controlling resources in bbAtom,
+        // otherwise getStoredBBAtom would fail
         Node bb_fact = d_bitblaster->getStoredBBAtom(fact);
         d_cnfStream->ensureLiteral(bb_fact);
         lit = d_cnfStream->getLiteral(bb_fact);
@@ -218,6 +220,10 @@ void BVSolverBitblast::postCheck(Theory::Effort level)
       d_literalFactCache[lit] = fact;
     }
     d_assumptions.push_back(d_factLiteralCache[fact]);
+  }
+
+  if (rm->outOfTime()){
+    return;
   }
 
   std::vector<prop::SatLiteral> assumptions(d_assumptions.begin(),
@@ -274,7 +280,7 @@ bool BVSolverBitblast::preNotifyFact(
   {
     d_bbFacts.push_back(fact);
   }
-  
+
   // Return false to enable equality engine reasoning in Theory, which is
   // available if we are using the equality engine.
   return !logicInfo().isSharingEnabled() && !options().bv.bvEqEngine;

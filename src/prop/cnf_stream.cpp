@@ -134,7 +134,7 @@ void CnfStream::ensureLiteral(TNode n)
     // These are not removable and have no proof ID
     d_removable = false;
     if (resourceManager()->outOfTime()) {
-      std::cout << "out of time during ensureLiteral" << std::endl;
+      // std::cout << "out of time during ensureLiteral" << std::endl;
       return;
     }
     SatLiteral lit = toCNF(n, false);
@@ -298,11 +298,12 @@ SatLiteral CnfStream::convertAtom(TNode node)
 
 SatLiteral CnfStream::getLiteral(TNode node) {
   if (resourceManager()->outOfTime()) {
-    std::cout << "out of time during getLiteral" << std::endl;
+    // std::cout << "out of time during getLiteral" << std::endl;
+    return undefSatVariable;
   }
   Assert(!node.isNull()) << "CnfStream: can't getLiteral() of null node";
-  Assert(d_nodeToLiteralMap.contains(node))
-      << "Literal not in the CNF Cache: " << node << "\n";
+  Assert(d_nodeToLiteralMap.contains(node));
+      // << "Literal not in the CNF Cache: " << node << "\n";
 
   SatLiteral literal = d_nodeToLiteralMap[node];
   Trace("cnf") << "CnfStream::getLiteral(" << node << ") => " << literal
